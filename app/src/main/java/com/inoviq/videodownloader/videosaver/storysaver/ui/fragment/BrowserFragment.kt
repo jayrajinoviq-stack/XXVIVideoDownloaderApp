@@ -42,6 +42,7 @@ class BrowserFragment : Fragment() {
     private var _binding: FragmentBrowserBinding? = null
     private val binding get() = _binding!!
     private val detectedMediaList = mutableListOf<MediaItem>()
+    
     private var currentTabCount: Int = 1
     private lateinit var suggestionsAdapter: SearchSuggestionsAdapter
 
