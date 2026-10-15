@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/bg_home_cream"
+    android:orientation="vertical">
+
+    <!-- Row Item Content (Screenshot 3) -->
+    <LinearLayout
+        android:id="@+id/llBookmarkItemContent"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="14dp">
+
+        <!-- Platform Favicon / Icon -->
+        <ImageView
+            android:id="@+id/ivBookmarkPlatformIcon"
+            android:layout_width="26dp"
+            android:layout_height="26dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/img_logo_instagram"
+            tools:src="@drawable/img_logo_instagram" />
+
+        <!-- Title -->
+        <TextView
+            android:id="@+id/tvBookmarkTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="14dp"
+            android:layout_marginEnd="12dp"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="@color/text_dark_brown"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            tools:text="Instagram" />
+
+        <!-- Bookmark Ribbon Action -->
+        <ImageView
+            android:id="@+id/btnBookmarkRibbon"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_marginEnd="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:contentDescription="Bookmark Toggle"
+            android:focusable="true"
+            android:padding="4dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_bookmark_ribbon_filled" />
+
+        <!-- Add To New Tab Action Button -->
+        <ImageView
+            android:id="@+id/btnBookmarkAddTab"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:contentDescription="Open in New Tab"
+            android:focusable="true"
+            android:padding="4dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_bookmark_plus" />
+    </LinearLayout>
+
+    <!-- Full-Width Orange Divider (Screenshot 3) -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/primary_orange" />
+
+</LinearLayout>

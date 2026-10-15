@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/tabRowRoot"
+    android:layout_width="match_parent"
+    android:layout_height="52dp"
+    android:layout_marginHorizontal="6dp"
+    android:layout_marginVertical="2dp"
+    android:clickable="true"
+    android:focusable="true"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingHorizontal="14dp">
+
+    <!-- Platform/Page Icon -->
+    <ImageView
+        android:id="@+id/ivTabIcon"
+        android:layout_width="28dp"
+        android:layout_height="28dp"
+        android:contentDescription="Tab Icon"
+        android:scaleType="fitCenter"
+        tools:src="@drawable/img_logo_instagram" />
+
+    <!-- Tab Title (Instagram, Twitter, Homepage, etc.) -->
+    <TextView
+        android:id="@+id/tvTabTitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="14dp"
+        android:layout_weight="1"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textColor="@color/text_dark_brown"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        tools:text="Instagram" />
+
+    <!-- Close 'X' Button (Vector 2) -->
+    <ImageView
+        android:id="@+id/btnRemoveTab"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:clickable="true"
+        android:contentDescription="Close Tab"
+        android:focusable="true"
+        android:padding="4dp"
+        android:src="@drawable/ic_tab_item_close" />
+
+</LinearLayout>

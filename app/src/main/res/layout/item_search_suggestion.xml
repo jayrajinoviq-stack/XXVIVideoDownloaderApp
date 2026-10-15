@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="44dp"
+    android:background="?attr/selectableItemBackground"
+    android:clickable="true"
+    android:focusable="true"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingHorizontal="14dp">
+
+    <ImageView
+        android:id="@+id/ivSuggestionIcon"
+        android:layout_width="18dp"
+        android:layout_height="18dp"
+        android:alpha="0.6"
+        android:contentDescription="Search"
+        android:src="@drawable/ic_search_enter" />
+
+    <TextView
+        android:id="@+id/tvSuggestionText"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:layout_weight="1"
+        android:ellipsize="end"
+        android:singleLine="true"
+        android:textColor="@color/text_dark_brown"
+        android:textSize="14sp"
+        tools:text="facebook login" />
+
+    <ImageView
+        android:id="@+id/btnFillQuery"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:alpha="0.4"
+        android:contentDescription="Fill"
+        android:padding="2dp"
+        android:src="@drawable/ic_arrow_up_right" />
+
+</LinearLayout>

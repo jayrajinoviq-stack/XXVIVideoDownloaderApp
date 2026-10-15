@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/bg_home_cream"
+    android:orientation="vertical">
+
+    <!-- Row Item Content (Screenshots 1 & 2) -->
+    <LinearLayout
+        android:id="@+id/llHistoryItemContent"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="14dp">
+
+        <!-- Platform Favicon / Icon -->
+        <ImageView
+            android:id="@+id/ivHistoryPlatformIcon"
+            android:layout_width="26dp"
+            android:layout_height="26dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/img_logo_instagram"
+            tools:src="@drawable/img_logo_instagram" />
+
+        <!-- Title & URL Column -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="14dp"
+            android:layout_marginEnd="8dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvHistoryTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="@color/text_dark_brown"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                tools:text="Instagram" />
+
+            <TextView
+                android:id="@+id/tvHistoryUrl"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="3dp"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="@color/text_gray"
+                android:textSize="12sp"
+                tools:text="https://www.instagram.com/?hl=en" />
+        </LinearLayout>
+
+        <!-- 3-Dots Action Button -->
+        <ImageView
+            android:id="@+id/btnHistoryMore"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:contentDescription="Item Actions"
+            android:focusable="true"
+            android:padding="5dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_top_more" />
+    </LinearLayout>
+
+    <!-- Full-Width Orange Divider (Screenshots 1 & 2) -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/primary_orange" />
+
+</LinearLayout>

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="bg_color">#FFF9F5</color>
+
+    <!-- Theme and Brand Palette -->
+    <color name="primary_orange">#FA9500</color>
+    <color name="primary_orange_dark">#FD7B01</color>
+    <color name="primary_orange_light">#FFF3E3</color>
+    <color name="nav_cream_bg">#FFF3E3</color>
+    <color name="text_dark_brown">#352208</color>
+    <color name="text_gray">#7D8597</color>
+    <color name="text_gray_light">#94A3B8</color>
+    <color name="text_dark">#1E293B</color>
+    <color name="divider">#E2E8F0</color>
+    <color name="card_bg">#FFFFFF</color>
+    <color name="card_stroke">#EEEEEE</color>
+    <color name="browser_bg">#FFF9F5</color>
+    <color name="search_bar_bg">#FFFFFF</color>
+    <color name="search_bar_stroke">#E2E8F0</color>
+    <color name="shimmer_gray">#F1F5F9</color>
+    <color name="menu_divider">#FADCB9</color>
+    <color name="tab_active_bg">#FFF8F0</color>
+    <color name="tab_border_orange">#FA9500</color>
+    <color name="bg_home_cream">#FFF9F5</color>
+    <color name="search_border_orange">#FCE0C3</color>
+    <color name="menu_text_gray">#6B778D</color>
+    <color name="overlay_dim">#80000000</color>
+</resources>

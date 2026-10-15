@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/llBookmarkRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_home_cream"
+    android:orientation="vertical">
+
+    <!-- Top Bar (Screenshot 3) -->
+    <LinearLayout
+        android:id="@+id/bookmarkTopBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="12dp">
+
+        <!-- Back Button -->
+        <ImageView
+            android:id="@+id/btnBookmarkBack"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:contentDescription="Back"
+            android:focusable="true"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_settings_back" />
+
+        <!-- Title -->
+        <TextView
+            android:id="@+id/tvBookmarkTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="14dp"
+            android:layout_weight="1"
+            android:text="Bookmark"
+            android:textColor="@color/text_dark_brown"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <!-- Bookmark Ribbon Header Icon -->
+        <ImageView
+            android:id="@+id/ivBookmarkHeaderRibbon"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Bookmarks"
+            android:padding="4dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_bookmark_ribbon_filled" />
+    </LinearLayout>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <!-- Bookmarks RecyclerView -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvBookmarkList"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:overScrollMode="never"
+            android:paddingBottom="24dp"
+            tools:listitem="@layout/item_bookmark_row" />
+
+        <!-- Empty State -->
+        <TextView
+            android:id="@+id/tvBookmarkEmpty"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="No bookmarks saved yet"
+            android:textColor="@color/text_gray"
+            android:textSize="15sp"
+            android:visibility="gone" />
+    </FrameLayout>
+
+</LinearLayout>

@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.drawerlayout.widget.DrawerLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/drawerLayout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_home_cream"
+    tools:context=".ui.activity.MainActivity">
+
+    <!-- Main Content: Fragment Container (Browser) -->
+    <FrameLayout
+        android:id="@+id/fragmentContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/bg_home_cream" />
+
+    <!-- Left Side Drawer: Tabs View (Image 3) -->
+    <LinearLayout
+        android:id="@+id/navDrawerTabs"
+        android:layout_width="300dp"
+        android:layout_height="match_parent"
+        android:layout_gravity="start"
+        android:background="#FFFDFC"
+        android:clickable="true"
+        android:elevation="16dp"
+        android:focusable="true"
+        android:orientation="vertical">
+
+        <!-- Header: "Tabs" Title and Orange Plus Button -->
+        <LinearLayout
+            android:id="@+id/llDrawerTabsHeader"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="20dp"
+            android:paddingVertical="12dp">
+
+            <TextView
+                android:id="@+id/tvDrawerTabsTitle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Tabs"
+                android:textColor="@color/text_dark_brown"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+
+            <!-- Vector 1 Orange Plus Button -->
+            <ImageView
+                android:id="@+id/btnAddNewTabFromDrawer"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:contentDescription="New Tab"
+                android:focusable="true"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_tabs_add_orange" />
+        </LinearLayout>
+
+        <!-- RecyclerView for Open Tabs (Image 3) -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvDrawerTabs"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:overScrollMode="never"
+            android:paddingHorizontal="6dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="24dp"
+            tools:listitem="@layout/item_tab_row" />
+
+    </LinearLayout>
+
+</androidx.drawerlayout.widget.DrawerLayout>

@@ -1,0 +1,28 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+    <style name="Base.Theme.XXVIVideoDownloader" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="android:windowBackground">@color/bg_home_cream</item>
+        <item name="android:statusBarColor">@color/bg_home_cream</item>
+        <item name="android:windowLightStatusBar" tools:targetApi="m">true</item>
+        <item name="android:navigationBarColor">@color/bg_home_cream</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">true</item>
+    </style>
+
+    <style name="Theme.XXVIVideoDownloader" parent="Base.Theme.XXVIVideoDownloader" />
+
+    <style name="Theme.XXVIVideoDownloader.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/bg_color</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/app_logo</item>
+        <item name="windowSplashScreenAnimationDuration">300</item>
+        <item name="postSplashScreenTheme">@style/Theme.XXVIVideoDownloader</item>
+    </style>
+
+    <style name="ShapeAppearance.RoundedSmall" parent="">
+        <item name="cornerSize">10dp</item>
+    </style>
+
+    <style name="ShapeAppearance.RoundedMedium" parent="">
+        <item name="cornerSize">16dp</item>
+    </style>
+
+</resources>
