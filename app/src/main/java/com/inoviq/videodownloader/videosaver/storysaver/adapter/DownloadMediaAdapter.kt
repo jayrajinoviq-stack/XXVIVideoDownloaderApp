@@ -70,30 +70,31 @@ class DownloadMediaAdapter(
         }
 
         private fun showRenameDialog(context: Context, item: MediaItem) {
-            val editText = EditText(context).apply {
-                setText(item.title)
-                setSelection(text.length)
-                setSingleLine(true)
-            }
-            val container = FrameLayout(context).apply {
-                val pad = (20 * context.resources.displayMetrics.density).toInt()
-                setPadding(pad, pad / 2, pad, pad / 2)
-                addView(editText)
+            val dialog = android.app.Dialog(context)
+            dialog.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE)
+            val renameBinding = com.inoviq.videodownloader.videosaver.storysaver.databinding.DialogRenameMediaBinding.inflate(LayoutInflater.from(context))
+            dialog.setContentView(renameBinding.root)
+            dialog.window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT))
+            dialog.window?.setLayout((320 * context.resources.displayMetrics.density).toInt(), ViewGroup.LayoutParams.WRAP_CONTENT)
+
+            renameBinding.etRenameInput.setText(item.title)
+            renameBinding.etRenameInput.setSelection(renameBinding.etRenameInput.text.length)
+
+            renameBinding.btnCancelRename.setOnClickListener {
+                dialog.dismiss()
             }
 
-            AlertDialog.Builder(context)
-                .setTitle("Rename File")
-                .setView(container)
-                .setPositiveButton("Save") { _, _ ->
-                    val newName = editText.text.toString().trim()
-                    if (newName.isNotEmpty()) {
-                        item.title = newName
-                        binding.tvTitle.text = newName
-                        onItemsChanged?.invoke()
-                    }
+            renameBinding.btnConfirmRename.setOnClickListener {
+                val newName = renameBinding.etRenameInput.text.toString().trim()
+                if (newName.isNotEmpty()) {
+                    item.title = newName
+                    binding.tvTitle.text = newName
+                    onItemsChanged?.invoke()
                 }
-                .setNegativeButton("Cancel", null)
-                .show()
+                dialog.dismiss()
+            }
+
+            dialog.show()
         }
     }
 }

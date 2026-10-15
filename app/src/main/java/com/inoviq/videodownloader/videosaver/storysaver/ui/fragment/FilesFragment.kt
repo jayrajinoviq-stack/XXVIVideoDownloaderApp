@@ -1,9 +1,14 @@
 package com.inoviq.videodownloader.videosaver.storysaver.ui.fragment
 
+import android.app.Dialog
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
+import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.Window
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
@@ -14,9 +19,11 @@ import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.inoviq.videodownloader.videosaver.storysaver.R
 import com.inoviq.videodownloader.videosaver.storysaver.adapter.DownloadedFilesAdapter
+import com.inoviq.videodownloader.videosaver.storysaver.databinding.DialogDeleteConfirmationBinding
 import com.inoviq.videodownloader.videosaver.storysaver.databinding.FragmentFilesBinding
 import com.inoviq.videodownloader.videosaver.storysaver.model.MediaItem
 import com.inoviq.videodownloader.videosaver.storysaver.utils.DownloadStore
+import java.io.File
 
 class FilesFragment : BottomSheetDialogFragment() {
 
@@ -49,7 +56,18 @@ class FilesFragment : BottomSheetDialogFragment() {
         }
         setupRecyclerView()
         setupFilterChips()
+        setupMultiSelectActions()
         loadPersistedFiles()
+
+        dialog?.setOnKeyListener { _, keyCode, event ->
+            if (keyCode == KeyEvent.KEYCODE_BACK && event.action == KeyEvent.ACTION_UP) {
+                if (::adapter.isInitialized && adapter.isMultiSelectMode) {
+                    adapter.setMultiSelectMode(false)
+                    return@setOnKeyListener true
+                }
+            }
+            false
+        }
     }
 
     override fun onStart() {
@@ -88,27 +106,121 @@ class FilesFragment : BottomSheetDialogFragment() {
     }
 
     private fun setupRecyclerView() {
-        adapter = DownloadedFilesAdapter(displayedFiles) { item ->
-            val context = context ?: return@DownloadedFilesAdapter
-            DownloadStore.removeDownloadedItem(context, item)
-            allFiles.removeAll { it.id == item.id || it.title == item.title || it.url == item.url }
-            updateFilter()
-            Toast.makeText(context, "Deleted ${item.title}", Toast.LENGTH_SHORT).show()
-        }
+        adapter = DownloadedFilesAdapter(
+            displayedFiles,
+            onDeleteSingle = { item ->
+                showDeleteConfirmationDialog {
+                    val context = context ?: return@showDeleteConfirmationDialog
+                    DownloadStore.removeDownloadedItem(context, item)
+                    try {
+                        item.localPath?.let { path ->
+                            val f = File(path)
+                            if (f.exists()) f.delete()
+                        }
+                    } catch (_: Exception) {}
+                    allFiles.removeAll { it.id == item.id || it.title == item.title || it.url == item.url }
+                    updateFilter()
+                    Toast.makeText(context, "Deleted ${item.title}", Toast.LENGTH_SHORT).show()
+                }
+            },
+            onSelectionChanged = { selectedCount, totalCount ->
+                binding.tvSelectedCount.text = "$selectedCount Selected"
+                val allSelected = selectedCount > 0 && selectedCount == totalCount
+                binding.ivSelectAllCheckbox.setImageResource(
+                    if (allSelected) R.drawable.ic_custom_checkbox_checked
+                    else R.drawable.ic_custom_checkbox_unchecked
+                )
+            },
+            onMultiSelectModeChanged = { isMulti ->
+                binding.llNormalHeader.visibility = if (isMulti) View.GONE else View.VISIBLE
+                binding.llMultiSelectHeader.visibility = if (isMulti) View.VISIBLE else View.GONE
+            }
+        )
         binding.rvFiles.layoutManager = LinearLayoutManager(requireContext())
         binding.rvFiles.adapter = adapter
     }
 
+    private fun setupMultiSelectActions() {
+        binding.btnCancelMultiSelect.setOnClickListener {
+            adapter.setMultiSelectMode(false)
+        }
+
+        binding.llSelectAll.setOnClickListener {
+            val total = displayedFiles.size
+            val currentSelected = adapter.selectedItems.size
+            val shouldSelectAll = currentSelected < total
+            adapter.selectAll(shouldSelectAll)
+        }
+
+        binding.btnMultiDelete.setOnClickListener {
+            val selected = adapter.getSelectedFiles()
+            if (selected.isEmpty()) {
+                Toast.makeText(context, "No files selected", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            showDeleteConfirmationDialog {
+                val ctx = context ?: return@showDeleteConfirmationDialog
+                selected.forEach { item ->
+                    DownloadStore.removeDownloadedItem(ctx, item)
+                    try {
+                        item.localPath?.let { path ->
+                            val f = File(path)
+                            if (f.exists()) f.delete()
+                        }
+                    } catch (_: Exception) {}
+                    allFiles.removeAll { it.id == item.id || it.title == item.title || it.url == item.url }
+                }
+                val count = selected.size
+                adapter.setMultiSelectMode(false)
+                updateFilter()
+                Toast.makeText(ctx, "Deleted $count files", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun showDeleteConfirmationDialog(onConfirm: () -> Unit) {
+        val context = context ?: return
+        val dialog = Dialog(context)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+        val dialogBinding = DialogDeleteConfirmationBinding.inflate(layoutInflater)
+        dialog.setContentView(dialogBinding.root)
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        dialog.window?.setLayout((320 * resources.displayMetrics.density).toInt(), ViewGroup.LayoutParams.WRAP_CONTENT)
+
+        dialogBinding.tvDeleteDialogMessage.text = "Are you sure you went to delete It?"
+
+        dialogBinding.btnCancelDelete.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialogBinding.btnConfirmDelete.setOnClickListener {
+            dialog.dismiss()
+            onConfirm()
+        }
+
+        dialog.show()
+    }
+
     private fun setupFilterChips() {
         binding.chipAll.setOnClickListener {
+            if (::adapter.isInitialized && adapter.isMultiSelectMode) {
+                adapter.setMultiSelectMode(false)
+            }
             currentFilter = "ALL"
             updateFilter()
         }
         binding.chipVideos.setOnClickListener {
+            if (::adapter.isInitialized && adapter.isMultiSelectMode) {
+                adapter.setMultiSelectMode(false)
+            }
             currentFilter = "VIDEOS"
             updateFilter()
         }
         binding.chipImages.setOnClickListener {
+            if (::adapter.isInitialized && adapter.isMultiSelectMode) {
+                adapter.setMultiSelectMode(false)
+            }
             currentFilter = "IMAGES"
             updateFilter()
         }

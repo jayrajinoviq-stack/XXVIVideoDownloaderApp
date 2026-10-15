@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="320dp"
+    android:layout_height="wrap_content"
+    android:layout_gravity="center"
+    android:background="@drawable/bg_clear_history_dialog"
+    android:gravity="center_horizontal"
+    android:orientation="vertical"
+    android:paddingHorizontal="24dp"
+    android:paddingTop="26dp"
+    android:paddingBottom="24dp">
+
+    <!-- Dialog Title -->
+    <TextView
+        android:id="@+id/tvAddShortcutTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Add Shortcut"
+        android:textColor="@color/black"
+        android:textSize="22sp"
+        android:textStyle="bold" />
+
+    <!-- Dialog Subtitle -->
+    <TextView
+        android:id="@+id/tvAddShortcutSubtitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:gravity="center"
+        android:text="Add your favorite website to home screen"
+        android:textColor="@color/text_gray"
+        android:textSize="13sp" />
+
+    <!-- Website Name Input -->
+    <EditText
+        android:id="@+id/etShortcutName"
+        android:layout_width="match_parent"
+        android:layout_height="46dp"
+        android:layout_marginTop="20dp"
+        android:background="@drawable/bg_dialog_input"
+        android:hint="Website Name (e.g. YouTube)"
+        android:imeOptions="actionNext"
+        android:inputType="textCapWords"
+        android:maxLines="1"
+        android:paddingHorizontal="14dp"
+        android:singleLine="true"
+        android:textColor="@color/text_dark_brown"
+        android:textColorHint="@color/text_gray"
+        android:textSize="14sp" />
+
+    <!-- Website URL Input -->
+    <EditText
+        android:id="@+id/etShortcutUrl"
+        android:layout_width="match_parent"
+        android:layout_height="46dp"
+        android:layout_marginTop="10dp"
+        android:background="@drawable/bg_dialog_input"
+        android:hint="Website URL (e.g. youtube.com)"
+        android:imeOptions="actionDone"
+        android:inputType="textUri"
+        android:maxLines="1"
+        android:paddingHorizontal="14dp"
+        android:singleLine="true"
+        android:textColor="@color/text_dark_brown"
+        android:textColorHint="@color/text_gray"
+        android:textSize="14sp" />
+
+    <!-- Button Row: CANCEL / ADD -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:gravity="center"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/btnCancelAddShortcut"
+            android:layout_width="0dp"
+            android:layout_height="46dp"
+            android:layout_marginEnd="8dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_dialog_btn_no"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:text="CANCEL"
+            android:textColor="@color/black"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/btnConfirmAddShortcut"
+            android:layout_width="0dp"
+            android:layout_height="46dp"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_dialog_btn_yes"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:text="ADD"
+            android:textColor="@color/white"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+</LinearLayout>

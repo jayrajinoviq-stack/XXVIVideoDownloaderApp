@@ -27,4 +27,5 @@
     <color name="search_border_orange">#FCE0C3</color>
     <color name="menu_text_gray">#6B778D</color>
     <color name="overlay_dim">#80000000</color>
+    <color name="red">#80ED0707</color>
 </resources>

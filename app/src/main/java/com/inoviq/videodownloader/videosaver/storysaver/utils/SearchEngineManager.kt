@@ -11,22 +11,31 @@ object SearchEngineManager {
     val ALL_ENGINES = listOf(
         "Google",
         "Bing",
-        "Brave Search",
         "DuckDuckGo",
-        "Startpage",
-        "Ecosia",
         "Yahoo Search",
-        "Kagi"
+        "Brave Search",
+        "Ecosia"
     )
 
     fun getSearchEngine(context: Context): String {
         val prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
-        return prefs.getString(KEY_ENGINE, "Google") ?: "Google"
+        val saved = prefs.getString(KEY_ENGINE, "Google") ?: "Google"
+        // If saved engine is Startpage (which blocks WebViews with verification loops) or invalid, auto-fix to Google
+        if (saved.equals("Startpage", ignoreCase = true) || !ALL_ENGINES.contains(saved)) {
+            prefs.edit().putString(KEY_ENGINE, "Google").apply()
+            return "Google"
+        }
+        return saved
     }
 
     fun setSearchEngine(context: Context, engineName: String) {
         val prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
-        prefs.edit().putString(KEY_ENGINE, engineName).apply()
+        val targetEngine = if (engineName.equals("Startpage", ignoreCase = true) || !ALL_ENGINES.contains(engineName)) {
+            "Google"
+        } else {
+            engineName
+        }
+        prefs.edit().putString(KEY_ENGINE, targetEngine).apply()
     }
 
     fun buildSearchUrl(context: Context, query: String): String {
@@ -38,13 +47,11 @@ object SearchEngineManager {
 
         return when (getSearchEngine(context)) {
             "Bing" -> "https://www.bing.com/search?q=$encoded"
-            "Brave Search" -> "https://search.brave.com/search?q=$encoded"
             "DuckDuckGo" -> "https://duckduckgo.com/?q=$encoded"
-            "Startpage" -> "https://www.startpage.com/sp/search?query=$encoded"
-            "Ecosia" -> "https://www.ecosia.org/search?q=$encoded"
             "Yahoo Search" -> "https://search.yahoo.com/search?p=$encoded"
-            "Kagi" -> "https://kagi.com/search?q=$encoded"
-            else -> "https://www.google.com/search?q=$encoded" // Google default
+            "Brave Search" -> "https://search.brave.com/search?q=$encoded"
+            "Ecosia" -> "https://www.ecosia.org/search?q=$encoded"
+            else -> "https://www.google.com/search?q=$encoded" // Google default (instant, Chrome standard)
         }
     }
 }

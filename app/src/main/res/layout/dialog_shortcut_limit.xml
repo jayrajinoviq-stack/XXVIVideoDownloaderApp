@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="320dp"
+    android:layout_height="wrap_content"
+    android:layout_gravity="center"
+    android:background="@drawable/bg_clear_history_dialog"
+    android:gravity="center_horizontal"
+    android:orientation="vertical"
+    android:paddingHorizontal="24dp"
+    android:paddingTop="28dp"
+    android:paddingBottom="24dp">
+
+    <!-- Dialog Title -->
+    <TextView
+        android:id="@+id/tvLimitTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Limit Reached"
+        android:textColor="@color/black"
+        android:textSize="22sp"
+        android:textStyle="bold" />
+
+    <!-- Dialog Message -->
+    <TextView
+        android:id="@+id/tvLimitMsg"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:gravity="center"
+        android:text="You can keep up to 8 shortcuts on your home screen. Please remove one from the list first to add a new website."
+        android:textColor="@color/text_gray"
+        android:textSize="14sp" />
+
+    <!-- Tip / Instruction -->
+    <TextView
+        android:id="@+id/tvLimitTip"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:gravity="center"
+        android:text="Tip: Hold any shortcut to show the cancel button on top-left to remove it."
+        android:textColor="@color/primary_orange_dark"
+        android:textSize="12sp"
+        android:textStyle="italic" />
+
+    <!-- Single Button: GOT IT -->
+    <TextView
+        android:id="@+id/btnConfirmLimit"
+        android:layout_width="match_parent"
+        android:layout_height="46dp"
+        android:layout_marginTop="26dp"
+        android:background="@drawable/bg_dialog_btn_yes"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center"
+        android:text="GOT IT"
+        android:textColor="@color/white"
+        android:textSize="14sp"
+        android:textStyle="bold" />
+
+</LinearLayout>

@@ -28,14 +28,13 @@
 
         <androidx.appcompat.widget.SwitchCompat
             android:id="@+id/switchEngine"
+            style="@style/CustomCapsuleSwitch"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:clickable="false"
             android:focusable="false"
-            app:thumbTint="@null"
-            app:trackTint="@null"
-            android:thumb="@drawable/bg_switch_thumb"
-            app:track="@drawable/bg_switch_track" />
+            app:splitTrack="false"
+            app:switchMinWidth="52dp" />
     </LinearLayout>
 
     <View

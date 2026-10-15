@@ -58,6 +58,13 @@ class TabSwitcherAdapter(
                 binding.tabRowRoot.setBackgroundResource(android.R.color.transparent)
             }
 
+            // One tab is required: hide cancel button if only 1 tab exists, show if multiple
+            if (tabs.size <= 1) {
+                binding.btnRemoveTab.visibility = android.view.View.GONE
+            } else {
+                binding.btnRemoveTab.visibility = android.view.View.VISIBLE
+            }
+
             binding.tabRowRoot.setOnClickListener {
                 val pos = bindingAdapterPosition
                 if (pos != RecyclerView.NO_POSITION) {

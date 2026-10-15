@@ -8,14 +8,12 @@
     android:background="@color/bg_home_cream"
     tools:context=".ui.activity.MainActivity">
 
-    <!-- Main Content: Fragment Container (Browser) -->
     <FrameLayout
         android:id="@+id/fragmentContainer"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="@color/bg_home_cream" />
 
-    <!-- Left Side Drawer: Tabs View (Image 3) -->
     <LinearLayout
         android:id="@+id/navDrawerTabs"
         android:layout_width="300dp"
@@ -50,8 +48,8 @@
             <!-- Vector 1 Orange Plus Button -->
             <ImageView
                 android:id="@+id/btnAddNewTabFromDrawer"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
+                android:layout_width="26dp"
+                android:layout_height="26dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:clickable="true"
                 android:contentDescription="New Tab"

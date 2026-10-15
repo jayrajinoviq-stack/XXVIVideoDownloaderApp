@@ -8,7 +8,7 @@
     android:layout_marginVertical="6dp"
     app:cardBackgroundColor="@color/card_bg"
     app:cardCornerRadius="16dp"
-    app:cardElevation="2dp"
+    app:cardElevation="0dp"
     app:strokeColor="@color/card_stroke"
     app:strokeWidth="1dp">
 
@@ -17,7 +17,6 @@
         android:layout_height="wrap_content"
         android:padding="12dp">
 
-        <!-- Thumbnail Container -->
         <FrameLayout
             android:id="@+id/flThumbnail"
             android:layout_width="72dp"
@@ -34,7 +33,6 @@
                 app:shapeAppearanceOverlay="@style/ShapeAppearance.RoundedSmall"
                 tools:src="@drawable/app_logo" />
 
-            <!-- Video badge overlay if video -->
             <ImageView
                 android:id="@+id/ivPlayBadge"
                 android:layout_width="28dp"
@@ -107,10 +105,11 @@
                 android:layout_width="32dp"
                 android:layout_height="32dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
                 android:contentDescription="Share"
+                android:focusable="true"
                 android:padding="6dp"
-                android:src="@android:drawable/ic_menu_share"
-                app:tint="@color/text_gray" />
+                android:src="@drawable/ic_menu_share" />
 
             <ImageView
                 android:id="@+id/btnDelete"
@@ -118,11 +117,26 @@
                 android:layout_height="32dp"
                 android:layout_marginStart="4dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true"
                 android:contentDescription="Delete"
-                android:padding="6dp"
-                android:src="@android:drawable/ic_menu_delete"
-                app:tint="@color/text_gray_light" />
+                android:padding="4dp"
+                android:src="@drawable/ic_delete_bin_gray"
+                app:tint="@color/red" />
+
         </LinearLayout>
+
+        <ImageView
+            android:id="@+id/ivCheckbox"
+            android:layout_width="26dp"
+            android:layout_height="26dp"
+            android:layout_marginEnd="4dp"
+            android:contentDescription="Select"
+            android:src="@drawable/ic_custom_checkbox_unchecked"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

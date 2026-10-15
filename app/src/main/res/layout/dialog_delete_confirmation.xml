@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="320dp"
+    android:layout_height="wrap_content"
+    android:layout_gravity="center"
+    android:background="@drawable/bg_clear_history_dialog"
+    android:gravity="center_horizontal"
+    android:orientation="vertical"
+    android:paddingHorizontal="24dp"
+    android:paddingTop="26dp"
+    android:paddingBottom="24dp">
+
+    <!-- Top Orange Circle Badge with White Trash Icon -->
+    <FrameLayout
+        android:layout_width="58dp"
+        android:layout_height="58dp"
+        android:background="@drawable/bg_circle_orange_fab">
+
+        <ImageView
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_gravity="center"
+            android:contentDescription="Delete Icon"
+            android:src="@drawable/ic_trash_white" />
+    </FrameLayout>
+
+    <!-- Dialog Confirmation Message -->
+    <TextView
+        android:id="@+id/tvDeleteDialogMessage"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:gravity="center"
+        android:text="Are you sure you went to delete It?"
+        android:textColor="#5A6B82"
+        android:textSize="17.5sp"
+        android:textStyle="normal" />
+
+    <!-- Action Buttons Row: Cancel / Delete -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="26dp"
+        android:gravity="center"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/btnCancelDelete"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_marginEnd="10dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_dialog_btn_cancel_orange"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:text="Cancel"
+            android:textColor="#1E293B"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/btnConfirmDelete"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_dialog_btn_delete_orange"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:text="Delete"
+            android:textColor="@color/white"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+</LinearLayout>

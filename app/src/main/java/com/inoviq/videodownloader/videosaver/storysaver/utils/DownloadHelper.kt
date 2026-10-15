@@ -2,6 +2,8 @@ package com.inoviq.videodownloader.videosaver.storysaver.utils
 
 import android.app.DownloadManager
 import android.content.Context
+import android.graphics.Bitmap
+import android.media.MediaMetadataRetriever
 import android.media.MediaScannerConnection
 import android.net.Uri
 import android.os.Environment
@@ -12,6 +14,7 @@ import android.widget.Toast
 import com.inoviq.videodownloader.videosaver.storysaver.model.MediaItem
 import java.io.File
 import java.io.FileOutputStream
+import java.io.OutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import kotlin.concurrent.thread
@@ -61,6 +64,11 @@ object DownloadHelper {
             localPath = localDestFile.absolutePath
         )
 
+        try {
+            val pubDir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "XXVI_Downloader")
+            if (!pubDir.exists()) pubDir.mkdirs()
+        } catch (_: Exception) {}
+
         // Save immediately to persistent store so it shows in Files tab instantly
         DownloadStore.saveDownloadedItem(context, mediaItem)
 
@@ -85,7 +93,7 @@ object DownloadHelper {
         try {
             val request = DownloadManager.Request(Uri.parse(url)).apply {
                 setTitle(fileName)
-                setDescription("Downloading Facebook media...")
+                setDescription("Downloading media...")
                 setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
                 try {
                     setDestinationInExternalPublicDir(
@@ -104,13 +112,19 @@ object DownloadHelper {
                 setAllowedOverRoaming(true)
             }
 
-            // Forward active Facebook session cookies and User-Agent
+            // Forward session cookies and dynamic User-Agent/Referer
             val cookie = CookieManager.getInstance().getCookie(url)
             if (!cookie.isNullOrBlank()) {
                 request.addRequestHeader("Cookie", cookie)
             }
             request.addRequestHeader("User-Agent", USER_AGENT)
-            request.addRequestHeader("Referer", "https://m.facebook.com/")
+            val referer = try {
+                val parsed = Uri.parse(url)
+                "${parsed.scheme}://${parsed.host}/"
+            } catch (_: Exception) {
+                "https://m.facebook.com/"
+            }
+            request.addRequestHeader("Referer", referer)
 
             val dm = context.getSystemService(Context.DOWNLOAD_SERVICE) as? DownloadManager
             dm?.enqueue(request)
@@ -134,7 +148,13 @@ object DownloadHelper {
                 conn.connectTimeout = 15000
                 conn.readTimeout = 25000
                 conn.setRequestProperty("User-Agent", USER_AGENT)
-                conn.setRequestProperty("Referer", "https://m.facebook.com/")
+                val referer = try {
+                    val parsed = Uri.parse(url)
+                    "${parsed.scheme}://${parsed.host}/"
+                } catch (_: Exception) {
+                    "https://m.facebook.com/"
+                }
+                conn.setRequestProperty("Referer", referer)
 
                 val cookie = CookieManager.getInstance().getCookie(url)
                 if (!cookie.isNullOrBlank()) {
@@ -164,16 +184,45 @@ object DownloadHelper {
                     val sizeKb = totalBytes / 1024.0
                     val formatted = if (sizeMb >= 1.0) String.format("%.2f MB", sizeMb) else String.format("%.1f kB", sizeKb)
 
+                    var savedThumbPath: String? = null
+                    if (item.isVideo) {
+                        try {
+                            val retriever = MediaMetadataRetriever()
+                            retriever.setDataSource(destFile.absolutePath)
+                            val bitmap = retriever.getFrameAtTime(0, MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
+                                ?: retriever.frameAtTime
+                            if (bitmap != null) {
+                                val thumbFile = File(destFile.parentFile, "${destFile.nameWithoutExtension}_thumb.jpg")
+                                val outStream: OutputStream = FileOutputStream(thumbFile)
+                                outStream.use { out ->
+                                    bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
+                                }
+                                savedThumbPath = thumbFile.absolutePath
+                                MediaScannerConnection.scanFile(
+                                    context,
+                                    arrayOf(thumbFile.absolutePath),
+                                    arrayOf("image/jpeg"),
+                                    null
+                                )
+                            }
+                            retriever.release()
+                        } catch (_: Exception) {}
+                    }
+
+                    val finalThumb = savedThumbPath
+                        ?: if (item.isVideo) (if (!item.thumbnailUrl.isNullOrBlank() && item.thumbnailUrl.startsWith("http")) item.thumbnailUrl else "")
+                        else destFile.absolutePath
+
                     val updatedItem = item.copy(
                         sizeBytes = totalBytes,
                         sizeFormatted = formatted,
                         localPath = destFile.absolutePath,
-                        thumbnailUrl = destFile.absolutePath
+                        thumbnailUrl = finalThumb
                     )
 
                     DownloadStore.saveDownloadedItem(context, updatedItem)
 
-                    // Notify Android gallery
+                    // Notify Android gallery for the downloaded media
                     MediaScannerConnection.scanFile(
                         context,
                         arrayOf(destFile.absolutePath),

@@ -149,12 +149,11 @@
 
                     <androidx.appcompat.widget.SwitchCompat
                         android:id="@+id/switchWifiOnly"
+                        style="@style/CustomCapsuleSwitch"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        app:thumbTint="@null"
-                        app:trackTint="@null"
-                        android:thumb="@drawable/bg_switch_thumb"
-                        app:track="@drawable/bg_switch_track" />
+                        app:splitTrack="false"
+                        app:switchMinWidth="52dp" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -198,13 +197,12 @@
 
                     <androidx.appcompat.widget.SwitchCompat
                         android:id="@+id/switchBlockAds"
+                        style="@style/CustomCapsuleSwitch"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:checked="true"
-                        app:thumbTint="@null"
-                        app:trackTint="@null"
-                        android:thumb="@drawable/bg_switch_thumb"
-                        app:track="@drawable/bg_switch_track" />
+                        app:splitTrack="false"
+                        app:switchMinWidth="52dp" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -237,13 +235,12 @@
 
                     <androidx.appcompat.widget.SwitchCompat
                         android:id="@+id/switchRecentlyUsed"
+                        style="@style/CustomCapsuleSwitch"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:checked="true"
-                        app:thumbTint="@null"
-                        app:trackTint="@null"
-                        android:thumb="@drawable/bg_switch_thumb"
-                        app:track="@drawable/bg_switch_track" />
+                        app:splitTrack="false"
+                        app:switchMinWidth="52dp" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -403,13 +400,12 @@
 
                     <androidx.appcompat.widget.SwitchCompat
                         android:id="@+id/switchSyncGallery"
+                        style="@style/CustomCapsuleSwitch"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:checked="true"
-                        app:thumbTint="@null"
-                        app:trackTint="@null"
-                        android:thumb="@drawable/bg_switch_thumb"
-                        app:track="@drawable/bg_switch_track" />
+                        app:splitTrack="false"
+                        app:switchMinWidth="52dp" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 

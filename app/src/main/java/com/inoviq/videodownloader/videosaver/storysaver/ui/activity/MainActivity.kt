@@ -170,14 +170,12 @@ class MainActivity : AppCompatActivity() {
                 tab.isCurrent = true
                 tabAdapter.notifyDataSetChanged()
 
-                binding.root.postDelayed({
-                    if (tab.url.isBlank() || tab.url.equals("home", true)) {
-                        browserFragment.showHomeScreen(keepTopUrl = false)
-                    } else {
-                        browserFragment.loadUrl(tab.url)
-                    }
-                    closeTabsDrawer()
-                }, 100L)
+                if (tab.url.isBlank() || tab.url.equals("home", true)) {
+                    browserFragment.showHomeScreen(keepTopUrl = false)
+                } else {
+                    browserFragment.loadUrl(tab.url)
+                }
+                closeTabsDrawer()
             },
             onCloseClick = { tab, position ->
                 closeTab(tab, position)
@@ -227,47 +225,34 @@ class MainActivity : AppCompatActivity() {
             isCurrent = true
         )
         openTabs.forEach { it.isCurrent = false }
-        val insertIndex = openTabs.size
         openTabs.add(newTab)
-        tabAdapter.notifyItemInserted(insertIndex)
-        binding.rvDrawerTabs.smoothScrollToPosition(insertIndex)
+        tabAdapter.notifyDataSetChanged()
+        binding.rvDrawerTabs.smoothScrollToPosition(openTabs.size - 1)
         updateTabCountState()
 
-        binding.root.postDelayed({
-            if (hasUrl) {
-                browserFragment.loadUrl(initialUrl!!)
-            } else {
-                browserFragment.showHomeScreen(keepTopUrl = false)
-            }
-            closeTabsDrawer()
-        }, 160L)
+        if (hasUrl) {
+            browserFragment.loadUrl(initialUrl!!)
+        } else {
+            browserFragment.showHomeScreen(keepTopUrl = false)
+        }
+        closeTabsDrawer()
     }
 
     private fun closeTab(tab: BrowserTab, position: Int) {
         if (openTabs.size > 1) {
             val wasCurrent = tab.isCurrent
             openTabs.removeAt(position)
-            tabAdapter.notifyItemRemoved(position)
             if (wasCurrent) {
                 val next = openTabs.last()
                 next.isCurrent = true
-                tabAdapter.notifyItemChanged(openTabs.size - 1)
                 if (next.url.isBlank() || next.url.equals("home", true)) {
                     browserFragment.showHomeScreen(keepTopUrl = false)
                 } else {
                     browserFragment.loadUrl(next.url)
                 }
             }
+            tabAdapter.notifyDataSetChanged()
             updateTabCountState()
-        } else {
-            // Reset the single tab back to Homepage
-            tab.title = "Homepage"
-            tab.url = ""
-            tab.isCurrent = true
-            tabAdapter.notifyItemChanged(0)
-            browserFragment.showHomeScreen(keepTopUrl = false)
-            updateTabCountState()
-            Toast.makeText(this, "Reset to Homepage", Toast.LENGTH_SHORT).show()
         }
     }
 

@@ -5,6 +5,8 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="@drawable/bg_bottom_sheet"
+    android:clipChildren="false"
+    android:clipToPadding="false"
     android:orientation="vertical"
     android:paddingTop="12dp">
 
@@ -13,11 +15,230 @@
         android:layout_width="40dp"
         android:layout_height="4dp"
         android:layout_gravity="center_horizontal"
-        android:layout_marginBottom="12dp"
+        android:layout_marginBottom="14dp"
         android:background="@drawable/bg_pill_cream"
         android:backgroundTint="#D1D5DB" />
 
-    <!-- RecyclerView of Detected Media Items -->
+    <!-- 1. Single Media / Video Mode (Matches Reference Image 1) -->
+    <LinearLayout
+        android:id="@+id/llSingleVideoMode"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        android:orientation="vertical"
+        android:paddingHorizontal="20dp"
+        android:visibility="visible">
+
+        <!-- Media Header (Thumbnail, Title, Rename Button) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <com.google.android.material.imageview.ShapeableImageView
+                android:id="@+id/ivSingleThumbnail"
+                android:layout_width="72dp"
+                android:layout_height="72dp"
+                android:scaleType="centerCrop"
+                app:shapeAppearanceOverlay="@style/ShapeAppearance.RoundedSmall"
+                tools:src="@drawable/app_logo" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tvSingleTitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="middle"
+                    android:maxLines="1"
+                    android:textColor="@color/black"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    tools:text="facebook_170085002" />
+
+                <TextView
+                    android:id="@+id/btnSingleRename"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/bg_btn_rename_outline"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:paddingHorizontal="14dp"
+                    android:paddingVertical="5dp"
+                    android:text="Rename"
+                    android:textColor="@color/text_dark"
+                    android:textSize="13sp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Horizontal Quality Cards Row (720P, 480P, Audio) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:layout_marginBottom="6dp"
+            android:clipChildren="false"
+            android:clipToPadding="false"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <!-- 720P Card -->
+            <FrameLayout
+                android:id="@+id/cardQuality720p"
+                android:layout_width="0dp"
+                android:layout_height="80dp"
+                android:layout_marginEnd="8dp"
+                android:layout_weight="1"
+                android:clipChildren="false"
+                android:clipToPadding="false">
+
+                <LinearLayout
+                    android:id="@+id/llQuality720pBox"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/bg_quality_card_selected"
+                    android:gravity="center"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/tvQuality720pTitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="720P"
+                        android:textColor="@color/black"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvQuality720pSize"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="5.19MB"
+                        android:textColor="#4B5563"
+                        android:textSize="13sp" />
+                </LinearLayout>
+
+                <ImageView
+                    android:id="@+id/ivBadge720p"
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:layout_gravity="top|end"
+                    android:layout_marginTop="-6dp"
+                    android:layout_marginEnd="-6dp"
+                    android:src="@drawable/ic_check_circle_orange"
+                    android:visibility="visible" />
+            </FrameLayout>
+
+            <!-- 480P Card -->
+            <FrameLayout
+                android:id="@+id/cardQuality480p"
+                android:layout_width="0dp"
+                android:layout_height="80dp"
+                android:layout_marginHorizontal="4dp"
+                android:layout_weight="1"
+                android:clipChildren="false"
+                android:clipToPadding="false">
+
+                <LinearLayout
+                    android:id="@+id/llQuality480pBox"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/bg_quality_card_unselected"
+                    android:gravity="center"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/tvQuality480pTitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="480P"
+                        android:textColor="#6B7280"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvQuality480pSize"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="0.94MB"
+                        android:textColor="#9CA3AF"
+                        android:textSize="13sp" />
+                </LinearLayout>
+
+                <ImageView
+                    android:id="@+id/ivBadge480p"
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:layout_gravity="top|end"
+                    android:layout_marginTop="-6dp"
+                    android:layout_marginEnd="-6dp"
+                    android:src="@drawable/ic_check_circle_orange"
+                    android:visibility="gone" />
+            </FrameLayout>
+
+            <!-- Audio Card -->
+            <FrameLayout
+                android:id="@+id/cardQualityAudio"
+                android:layout_width="0dp"
+                android:layout_height="80dp"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:clipChildren="false"
+                android:clipToPadding="false">
+
+                <LinearLayout
+                    android:id="@+id/llQualityAudioBox"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/bg_quality_card_unselected"
+                    android:gravity="center"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/tvQualityAudioTitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Audio"
+                        android:textColor="#6B7280"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvQualityAudioSize"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="165kB"
+                        android:textColor="#9CA3AF"
+                        android:textSize="13sp" />
+                </LinearLayout>
+
+                <ImageView
+                    android:id="@+id/ivBadgeAudio"
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:layout_gravity="top|end"
+                    android:layout_marginTop="-6dp"
+                    android:layout_marginEnd="-6dp"
+                    android:src="@drawable/ic_check_circle_orange"
+                    android:visibility="gone" />
+            </FrameLayout>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- 2. Multiple Media Mode (Matches Reference Images 2 & 3) -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvMedia"
         android:layout_width="match_parent"
@@ -25,10 +246,11 @@
         android:clipToPadding="false"
         android:maxHeight="380dp"
         android:overScrollMode="never"
+        android:visibility="gone"
         tools:itemCount="3"
         tools:listitem="@layout/item_download_media" />
 
-    <!-- Bottom Buttons: Close and Download -->
+    <!-- Bottom Buttons: Close and Download (Identical in Both Modes) -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

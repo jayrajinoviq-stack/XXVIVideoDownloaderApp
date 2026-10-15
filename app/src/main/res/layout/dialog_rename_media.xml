@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="320dp"
+    android:layout_height="wrap_content"
+    android:layout_gravity="center"
+    android:background="@drawable/bg_clear_history_dialog"
+    android:gravity="center_horizontal"
+    android:orientation="vertical"
+    android:paddingHorizontal="24dp"
+    android:paddingTop="26dp"
+    android:paddingBottom="24dp">
+
+    <!-- Dialog Title -->
+    <TextView
+        android:id="@+id/tvRenameTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Rename File"
+        android:textColor="@color/black"
+        android:textSize="20sp"
+        android:textStyle="bold" />
+
+    <!-- Dialog Subtitle -->
+    <TextView
+        android:id="@+id/tvRenameSubtitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:gravity="center"
+        android:text="Enter a new name for this file"
+        android:textColor="@color/text_gray"
+        android:textSize="13sp" />
+
+    <!-- File Name Input -->
+    <EditText
+        android:id="@+id/etRenameInput"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginTop="18dp"
+        android:background="@drawable/bg_dialog_input"
+        android:hint="File Name"
+        android:imeOptions="actionDone"
+        android:inputType="text"
+        android:maxLines="1"
+        android:paddingHorizontal="14dp"
+        android:singleLine="true"
+        android:textColor="@color/text_dark_brown"
+        android:textColorHint="@color/text_gray"
+        android:textSize="14sp" />
+
+    <!-- Button Row: CANCEL / SAVE -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="22dp"
+        android:gravity="center"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/btnCancelRename"
+            android:layout_width="0dp"
+            android:layout_height="46dp"
+            android:layout_marginEnd="8dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_dialog_btn_no"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:text="CANCEL"
+            android:textColor="@color/black"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/btnConfirmRename"
+            android:layout_width="0dp"
+            android:layout_height="46dp"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_dialog_btn_yes"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:text="SAVE"
+            android:textColor="@color/white"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+</LinearLayout>

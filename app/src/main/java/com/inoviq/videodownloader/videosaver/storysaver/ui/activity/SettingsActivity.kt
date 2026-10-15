@@ -114,20 +114,37 @@ class SettingsActivity : AppCompatActivity() {
         }
 
         binding.cardPrivacyPolicy.setOnClickListener {
-            AlertDialog.Builder(this)
-                .setTitle("Privacy Policy")
-                .setMessage("XXVI Video Downloader respects your privacy. We do not collect or sell your personal browsing data. All media downloads are saved locally on your device storage.")
-                .setPositiveButton("Close", null)
-                .show()
+            showCustomInfoDialog(
+                "Privacy Policy",
+                "XXVI Video Downloader respects your privacy. We do not collect or sell your personal browsing data. All media downloads are saved locally on your device storage."
+            )
         }
 
         binding.cardTerms.setOnClickListener {
-            AlertDialog.Builder(this)
-                .setTitle("Terms & Conditions")
-                .setMessage("By using this application, you agree to respect copyright laws and intellectual property rights of media creators. This tool is designed for personal content archival purposes.")
-                .setPositiveButton("Close", null)
-                .show()
+            showCustomInfoDialog(
+                "Terms & Conditions",
+                "By using this application, you agree to respect copyright laws and intellectual property rights of media creators. This tool is designed for personal content archival purposes."
+            )
         }
+    }
+
+    private fun showCustomInfoDialog(title: String, message: String) {
+        val dialog = Dialog(this)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+        val alertBinding = com.inoviq.videodownloader.videosaver.storysaver.databinding.DialogCustomAlertBinding.inflate(layoutInflater)
+        dialog.setContentView(alertBinding.root)
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        dialog.window?.setLayout((320 * resources.displayMetrics.density).toInt(), ViewGroup.LayoutParams.WRAP_CONTENT)
+
+        alertBinding.tvAlertTitle.text = title
+        alertBinding.tvAlertMsg.text = message
+        alertBinding.btnAlertPositive.text = "CLOSE"
+        alertBinding.btnAlertNegative.visibility = android.view.View.GONE
+        alertBinding.btnAlertPositive.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialog.show()
     }
 
     private fun updateEngineLabel() {
