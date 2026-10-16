@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
@@ -7,28 +7,35 @@
     android:background="@drawable/bg_bottom_sheet"
     android:clipChildren="false"
     android:clipToPadding="false"
-    android:orientation="vertical"
-    android:paddingTop="12dp">
+    android:paddingTop="8dp">
 
     <!-- Top Drag Indicator -->
     <View
+        android:id="@+id/viewDragIndicator"
         android:layout_width="40dp"
         android:layout_height="4dp"
-        android:layout_gravity="center_horizontal"
-        android:layout_marginBottom="14dp"
+        android:layout_marginBottom="8dp"
         android:background="@drawable/bg_pill_cream"
-        android:backgroundTint="#D1D5DB" />
+        android:backgroundTint="#D1D5DB"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
-    <!-- 1. Single Media / Video Mode (Matches Reference Image 1) -->
+    <!-- 1. Single Media / Video Mode -->
     <LinearLayout
         android:id="@+id/llSingleVideoMode"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
         android:clipChildren="false"
         android:clipToPadding="false"
         android:orientation="vertical"
-        android:paddingHorizontal="20dp"
-        android:visibility="visible">
+        android:paddingHorizontal="16dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@id/llBottomButtons"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/viewDragIndicator">
 
         <!-- Media Header (Thumbnail, Title, Rename Button) -->
         <LinearLayout
@@ -238,35 +245,48 @@
 
     </LinearLayout>
 
-    <!-- 2. Multiple Media Mode (Matches Reference Images 2 & 3) -->
+    <!-- 2. Multiple Media Mode (Bounded height, scrolls smoothly between top and bottom buttons) -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvMedia"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="8dp"
         android:clipToPadding="false"
-        android:maxHeight="380dp"
+        android:nestedScrollingEnabled="true"
         android:overScrollMode="never"
         android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@id/llBottomButtons"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHeight_default="wrap"
+        app:layout_constraintHeight_max="450dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/viewDragIndicator"
         tools:itemCount="3"
         tools:listitem="@layout/item_download_media" />
 
-    <!-- Bottom Buttons: Close and Download (Identical in Both Modes) -->
+    <!-- Bottom Buttons: Cancel and Download (ALWAYS pinned to bottom, never pushed away!) -->
     <LinearLayout
-        android:layout_width="match_parent"
+        android:id="@+id/llBottomButtons"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:layout_marginBottom="24dp"
+        android:layout_marginTop="10dp"
+        android:layout_marginBottom="16dp"
         android:orientation="horizontal"
-        android:paddingHorizontal="20dp">
+        android:paddingHorizontal="16dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
 
         <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/btnClose"
             android:layout_width="0dp"
-            android:layout_height="50dp"
+            android:layout_height="48dp"
             android:layout_marginEnd="8dp"
             android:layout_weight="1"
             android:background="@drawable/bg_btn_close_outline"
-            android:text="Close"
+            android:elevation="0dp"
+            android:stateListAnimator="@null"
+            android:text="Cancel"
             android:textAllCaps="false"
             android:textColor="@color/black"
             android:textSize="16sp"
@@ -275,10 +295,12 @@
         <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/btnDownload"
             android:layout_width="0dp"
-            android:layout_height="50dp"
+            android:layout_height="48dp"
             android:layout_marginStart="8dp"
             android:layout_weight="1"
             android:background="@drawable/bg_btn_download_orange"
+            android:elevation="0dp"
+            android:stateListAnimator="@null"
             android:text="Download"
             android:textAllCaps="false"
             android:textColor="@color/white"
@@ -286,4 +308,4 @@
             android:textStyle="bold" />
     </LinearLayout>
 
-</LinearLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

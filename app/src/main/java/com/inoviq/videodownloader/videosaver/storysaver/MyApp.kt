@@ -1,4 +1,15 @@
-package com.inoviq.videodownloader.videosaver.storysaver
+﻿package com.inoviq.videodownloader.videosaver.storysaver
 
-class MyApp {
+import android.app.Application
+import com.google.android.gms.ads.MobileAds
+import com.inoviq.videodownloader.videosaver.storysaver.utils.AdManager
+
+class MyApp : Application() {
+
+    override fun onCreate() {
+        super.onCreate()
+
+        // Initialize Google Mobile Ads SDK and trigger background preload
+        AdManager.init(this)
+    }
 }

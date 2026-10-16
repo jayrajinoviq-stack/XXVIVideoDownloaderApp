@@ -41,11 +41,14 @@ class DownloadMediaAdapter(
         fun bind(item: MediaItem) {
             binding.tvTitle.text = item.title
             binding.tvSize.text = item.sizeFormatted
-            binding.cbSelect.isChecked = item.isChecked
+
+            val checkIcon = if (item.isChecked) R.drawable.ic_custom_checkbox_checked else R.drawable.ic_custom_checkbox_unchecked
+            binding.cbSelect.setImageResource(checkIcon)
 
             // Load thumbnail using Coil or fallback
-            if (!item.thumbnailUrl.isNullOrEmpty()) {
-                binding.ivThumbnail.load(item.thumbnailUrl) {
+            val thumb = if (!item.thumbnailUrl.isNullOrEmpty()) item.thumbnailUrl else item.url
+            if (!thumb.isNullOrEmpty()) {
+                binding.ivThumbnail.load(thumb) {
                     crossfade(true)
                     placeholder(R.drawable.app_logo)
                     error(R.drawable.app_logo)
@@ -55,13 +58,20 @@ class DownloadMediaAdapter(
                 binding.ivThumbnail.setImageResource(R.drawable.app_logo)
             }
 
-            binding.cbSelect.setOnCheckedChangeListener { _, isChecked ->
-                item.isChecked = isChecked
+            binding.cbSelect.setOnClickListener {
+                item.isChecked = !item.isChecked
+                binding.cbSelect.setImageResource(
+                    if (item.isChecked) R.drawable.ic_custom_checkbox_checked else R.drawable.ic_custom_checkbox_unchecked
+                )
                 onItemsChanged?.invoke()
             }
 
             binding.root.setOnClickListener {
-                binding.cbSelect.isChecked = !binding.cbSelect.isChecked
+                item.isChecked = !item.isChecked
+                binding.cbSelect.setImageResource(
+                    if (item.isChecked) R.drawable.ic_custom_checkbox_checked else R.drawable.ic_custom_checkbox_unchecked
+                )
+                onItemsChanged?.invoke()
             }
 
             binding.btnRename.setOnClickListener {

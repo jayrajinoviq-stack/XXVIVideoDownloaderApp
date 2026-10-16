@@ -22,6 +22,7 @@ import com.inoviq.videodownloader.videosaver.storysaver.adapter.DownloadedFilesA
 import com.inoviq.videodownloader.videosaver.storysaver.databinding.DialogDeleteConfirmationBinding
 import com.inoviq.videodownloader.videosaver.storysaver.databinding.FragmentFilesBinding
 import com.inoviq.videodownloader.videosaver.storysaver.model.MediaItem
+import com.inoviq.videodownloader.videosaver.storysaver.utils.DownloadProgressManager
 import com.inoviq.videodownloader.videosaver.storysaver.utils.DownloadStore
 import java.io.File
 
@@ -44,6 +45,83 @@ class FilesFragment : BottomSheetDialogFragment() {
         return binding.root
     }
 
+    private val downloadProgressListener = object : DownloadProgressManager.DownloadProgressListener {
+        override fun onDownloadStarted(item: MediaItem) {
+            val idx = allFiles.indexOfFirst { it.id == item.id || it.title == item.title }
+            if (idx != -1) {
+                allFiles[idx] = item
+            } else {
+                allFiles.add(0, item)
+            }
+            if (_binding != null) updateFilter()
+        }
+
+        override fun onProgressUpdated(item: MediaItem) {
+            val idx = allFiles.indexOfFirst { it.id == item.id || it.title == item.title }
+            if (idx != -1) {
+                allFiles[idx] = item
+                val dispIdx = displayedFiles.indexOfFirst { it.id == item.id || it.title == item.title }
+                if (dispIdx != -1 && ::adapter.isInitialized) {
+                    displayedFiles[dispIdx] = item
+                    adapter.notifyItemChanged(dispIdx)
+                }
+            } else {
+                allFiles.add(0, item)
+                if (_binding != null) updateFilter()
+            }
+        }
+
+        override fun onDownloadPaused(item: MediaItem) {
+            val idx = allFiles.indexOfFirst { it.id == item.id || it.title == item.title }
+            if (idx != -1) {
+                allFiles[idx] = item
+                val dispIdx = displayedFiles.indexOfFirst { it.id == item.id || it.title == item.title }
+                if (dispIdx != -1 && ::adapter.isInitialized) {
+                    displayedFiles[dispIdx] = item
+                    adapter.notifyItemChanged(dispIdx)
+                }
+            }
+        }
+
+        override fun onDownloadResumed(item: MediaItem) {
+            val idx = allFiles.indexOfFirst { it.id == item.id || it.title == item.title }
+            if (idx != -1) {
+                allFiles[idx] = item
+                val dispIdx = displayedFiles.indexOfFirst { it.id == item.id || it.title == item.title }
+                if (dispIdx != -1 && ::adapter.isInitialized) {
+                    displayedFiles[dispIdx] = item
+                    adapter.notifyItemChanged(dispIdx)
+                }
+            }
+        }
+
+        override fun onDownloadCompleted(item: MediaItem) {
+            val idx = allFiles.indexOfFirst { it.id == item.id || it.title == item.title }
+            if (idx != -1) {
+                allFiles[idx] = item
+            } else {
+                allFiles.add(0, item)
+            }
+            if (_binding != null) updateFilter()
+        }
+
+        override fun onDownloadFailed(item: MediaItem, error: String) {
+            val idx = allFiles.indexOfFirst { it.id == item.id }
+            if (idx != -1) {
+                allFiles.removeAt(idx)
+                if (_binding != null) updateFilter()
+            }
+        }
+
+        override fun onDownloadCancelled(item: MediaItem) {
+            val idx = allFiles.indexOfFirst { it.id == item.id }
+            if (idx != -1) {
+                allFiles.removeAt(idx)
+                if (_binding != null) updateFilter()
+            }
+        }
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { v, insets ->
@@ -57,6 +135,7 @@ class FilesFragment : BottomSheetDialogFragment() {
         setupRecyclerView()
         setupFilterChips()
         setupMultiSelectActions()
+        DownloadProgressManager.registerListener(downloadProgressListener)
         loadPersistedFiles()
 
         dialog?.setOnKeyListener { _, keyCode, event ->
@@ -99,7 +178,16 @@ class FilesFragment : BottomSheetDialogFragment() {
     private fun loadPersistedFiles() {
         val context = context ?: return
         DownloadStore.cleanMockItems(context)
-        val saved = DownloadStore.getDownloadedItems(context)
+        val saved = DownloadStore.getDownloadedItems(context).toMutableList()
+        val active = DownloadProgressManager.getActiveDownloads()
+        active.forEach { activeItem ->
+            val idx = saved.indexOfFirst { it.id == activeItem.id || it.title == activeItem.title }
+            if (idx != -1) {
+                saved[idx] = activeItem
+            } else {
+                saved.add(0, activeItem)
+            }
+        }
         allFiles.clear()
         allFiles.addAll(saved)
         updateFilter()
@@ -122,6 +210,20 @@ class FilesFragment : BottomSheetDialogFragment() {
                     updateFilter()
                     Toast.makeText(context, "Deleted ${item.title}", Toast.LENGTH_SHORT).show()
                 }
+            },
+            onPauseResume = { item ->
+                val ctx = context ?: return@DownloadedFilesAdapter
+                if (item.isPaused) {
+                    com.inoviq.videodownloader.videosaver.storysaver.service.DownloadService.resumeDownload(ctx, item.id)
+                } else {
+                    com.inoviq.videodownloader.videosaver.storysaver.service.DownloadService.pauseDownload(ctx, item.id)
+                }
+            },
+            onCancelDownload = { item ->
+                val ctx = context ?: return@DownloadedFilesAdapter
+                com.inoviq.videodownloader.videosaver.storysaver.service.DownloadService.cancelDownload(ctx, item.id)
+                allFiles.removeAll { it.id == item.id }
+                updateFilter()
             },
             onSelectionChanged = { selectedCount, totalCount ->
                 binding.tvSelectedCount.text = "$selectedCount Selected"
@@ -231,7 +333,7 @@ class FilesFragment : BottomSheetDialogFragment() {
         when (currentFilter) {
             "ALL" -> displayedFiles.addAll(allFiles)
             "VIDEOS" -> displayedFiles.addAll(allFiles.filter { it.isVideo })
-            "IMAGES" -> displayedFiles.addAll(allFiles.filter { !it.isVideo })
+            "IMAGES" -> displayedFiles.addAll(allFiles.filter { !it.isVideo && !it.isAudio })
         }
         adapter.notifyDataSetChanged()
 
@@ -274,6 +376,7 @@ class FilesFragment : BottomSheetDialogFragment() {
     }
 
     override fun onDestroyView() {
+        DownloadProgressManager.unregisterListener(downloadProgressListener)
         super.onDestroyView()
         _binding = null
     }

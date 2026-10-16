@@ -1,6 +1,7 @@
 package com.inoviq.videodownloader.videosaver.storysaver.ui.activity
 
 import android.app.Dialog
+import android.app.DownloadManager
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
@@ -16,13 +17,15 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.FileProvider
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.inoviq.videodownloader.videosaver.storysaver.databinding.ActivitySettingsBinding
 import com.inoviq.videodownloader.videosaver.storysaver.databinding.DialogSearchEngineBinding
 import com.inoviq.videodownloader.videosaver.storysaver.databinding.ItemSearchEngineRowBinding
-import com.inoviq.videodownloader.videosaver.storysaver.utils.SearchEngineManager
 import com.inoviq.videodownloader.videosaver.storysaver.utils.BrowserHistoryManager
+import com.inoviq.videodownloader.videosaver.storysaver.utils.DownloadHelper
+import com.inoviq.videodownloader.videosaver.storysaver.utils.SearchEngineManager
 
 class SettingsActivity : AppCompatActivity() {
 
@@ -72,6 +75,14 @@ class SettingsActivity : AppCompatActivity() {
     private fun setupListeners() {
         binding.btnSettingsBack.setOnClickListener {
             finish()
+        }
+
+        // Show actual dedicated download location path
+        val downloadDir = DownloadHelper.getDownloadDirectory(this)
+        binding.tvDownloadLocationPath.text = downloadDir.absolutePath
+
+        binding.cardDownloadLocation.setOnClickListener {
+            openDownloadLocation()
         }
 
         binding.cardSearchEngine.setOnClickListener {
@@ -145,6 +156,40 @@ class SettingsActivity : AppCompatActivity() {
         }
 
         dialog.show()
+    }
+
+    private fun openDownloadLocation() {
+        val dir = DownloadHelper.getDownloadDirectory(this)
+        var opened = false
+
+        // 1. Try launching DownloadManager VIEW_DOWNLOADS
+        try {
+            val dmIntent = Intent(DownloadManager.ACTION_VIEW_DOWNLOADS)
+            startActivity(dmIntent)
+            opened = true
+        } catch (_: Exception) {}
+
+        // 2. Try launching system file manager / viewer pointing to the downloads folder
+        if (!opened) {
+            try {
+                val uri = FileProvider.getUriForFile(this, "${packageName}.fileprovider", dir)
+                val folderIntent = Intent(Intent.ACTION_VIEW).apply {
+                    setDataAndType(uri, "*/*")
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                startActivity(folderIntent)
+                opened = true
+            } catch (_: Exception) {}
+        }
+
+        if (opened) {
+            Toast.makeText(this, "Location: ${dir.absolutePath}", Toast.LENGTH_SHORT).show()
+        } else {
+            showCustomInfoDialog(
+                "Download Location",
+                "Your downloaded videos and images are saved in:\n\n${dir.absolutePath}\n\nYou can access them directly using any File Manager app or Gallery."
+            )
+        }
     }
 
     private fun updateEngineLabel() {

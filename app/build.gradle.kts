@@ -1,4 +1,4 @@
-import java.text.SimpleDateFormat
+﻿import java.text.SimpleDateFormat
 import java.util.Date
 
 plugins {
@@ -67,4 +67,5 @@ dependencies {
     implementation("androidx.viewpager2:viewpager2:1.1.0")
     implementation("androidx.webkit:webkit:1.12.1")
     implementation("io.coil-kt:coil:2.7.0")
+    implementation("com.google.android.gms:play-services-ads:23.6.0")
 }

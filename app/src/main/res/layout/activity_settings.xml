@@ -8,7 +8,6 @@
     android:background="@color/bg_home_cream"
     android:orientation="vertical">
 
-    <!-- Top Bar (Image 2) -->
     <LinearLayout
         android:id="@+id/settingsTopBar"
         android:layout_width="match_parent"
@@ -136,7 +135,7 @@
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
                     android:paddingHorizontal="16dp"
-                    android:paddingVertical="14dp">
+                    android:paddingVertical="4dp">
 
                     <TextView
                         android:layout_width="0dp"
@@ -157,7 +156,6 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- SECTION 2: Browser -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -168,7 +166,6 @@
                 android:textSize="18sp"
                 android:textStyle="bold" />
 
-            <!-- Blocky Ads -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -184,7 +181,7 @@
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
                     android:paddingHorizontal="16dp"
-                    android:paddingVertical="14dp">
+                    android:paddingVertical="4dp">
 
                     <TextView
                         android:layout_width="0dp"
@@ -203,10 +200,11 @@
                         android:checked="true"
                         app:splitTrack="false"
                         app:switchMinWidth="52dp" />
+
                 </LinearLayout>
+
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Recently Used Website -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -222,7 +220,7 @@
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
                     android:paddingHorizontal="16dp"
-                    android:paddingVertical="14dp">
+                    android:paddingVertical="4dp">
 
                     <TextView
                         android:layout_width="0dp"
@@ -263,7 +261,7 @@
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
                     android:paddingHorizontal="16dp"
-                    android:paddingVertical="14dp">
+                    android:paddingVertical="16dp">
 
                     <TextView
                         android:id="@+id/tvSearchEngineLabel"
@@ -283,7 +281,6 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Clear Cache -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/cardClearCache"
                 android:layout_width="match_parent"
@@ -302,7 +299,7 @@
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
                     android:paddingHorizontal="16dp"
-                    android:paddingVertical="14dp">
+                    android:paddingVertical="16dp">
 
                     <TextView
                         android:layout_width="0dp"
@@ -340,7 +337,7 @@
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
                     android:paddingHorizontal="16dp"
-                    android:paddingVertical="14dp">
+                    android:paddingVertical="16dp">
 
                     <TextView
                         android:layout_width="0dp"
@@ -387,7 +384,7 @@
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
                     android:paddingHorizontal="16dp"
-                    android:paddingVertical="14dp">
+                    android:paddingVertical="4dp">
 
                     <TextView
                         android:layout_width="0dp"
@@ -439,7 +436,7 @@
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
                     android:paddingHorizontal="16dp"
-                    android:paddingVertical="14dp">
+                    android:paddingVertical="16dp">
 
                     <TextView
                         android:layout_width="0dp"
@@ -477,7 +474,7 @@
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
                     android:paddingHorizontal="16dp"
-                    android:paddingVertical="14dp">
+                    android:paddingVertical="16dp">
 
                     <TextView
                         android:layout_width="0dp"
@@ -515,7 +512,7 @@
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
                     android:paddingHorizontal="16dp"
-                    android:paddingVertical="14dp">
+                    android:paddingVertical="16dp">
 
                     <TextView
                         android:layout_width="0dp"
@@ -553,7 +550,7 @@
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
                     android:paddingHorizontal="16dp"
-                    android:paddingVertical="14dp">
+                    android:paddingVertical="16dp">
 
                     <TextView
                         android:layout_width="0dp"
@@ -588,7 +585,7 @@
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
                     android:paddingHorizontal="16dp"
-                    android:paddingVertical="14dp">
+                    android:paddingVertical="16dp">
 
                     <TextView
                         android:layout_width="0dp"

@@ -49,7 +49,9 @@ import com.inoviq.videodownloader.videosaver.storysaver.utils.HistoryEntry
 import com.inoviq.videodownloader.videosaver.storysaver.utils.BookmarkManager
 import com.inoviq.videodownloader.videosaver.storysaver.utils.HomeScreenShortcut
 import com.inoviq.videodownloader.videosaver.storysaver.utils.HomeScreenShortcutManager
+import com.inoviq.videodownloader.videosaver.storysaver.utils.NotificationPermissionHelper
 import java.net.URLEncoder
+import org.json.JSONArray
 
 class BrowserFragment : Fragment() {
 
@@ -68,6 +70,7 @@ class BrowserFragment : Fragment() {
     private val homeShortcutsList = mutableListOf<HomeScreenShortcut>()
     private var isProgrammaticTextChange = false
 
+    @Volatile
     private var savedActiveUrl: String = ""
     private var savedActiveTitle: String = ""
     private var isSearchOverlayOpen: Boolean = false
@@ -862,6 +865,13 @@ class BrowserFragment : Fragment() {
                 }
 
                 @JavascriptInterface
+                fun onMultiMediaClicked(jsonArrayStr: String, type: String, title: String) {
+                    activity?.runOnUiThread {
+                        handleMultiMediaDownloadFromWeb(jsonArrayStr, type, title)
+                    }
+                }
+
+                @JavascriptInterface
                 fun onMediaDetected(url: String, type: String, title: String, thumb: String) {
                     activity?.runOnUiThread {
                         addDetectedMedia(title, url, type.equals("video", true), thumb)
@@ -931,19 +941,29 @@ class BrowserFragment : Fragment() {
                         url.contains(".mp4?", ignoreCase = true) ||
                         url.contains(".webm", ignoreCase = true) ||
                         url.contains(".m4v", ignoreCase = true) ||
+                        url.contains(".mov", ignoreCase = true) ||
+                        url.contains(".m3u8", ignoreCase = true) ||
                         url.contains("video.xx.fbcdn.net", ignoreCase = true) ||
                         url.contains("video.fdel", ignoreCase = true) ||
                         url.contains("video.fsin", ignoreCase = true) ||
                         url.contains("video.fmaa", ignoreCase = true) ||
-                        (url.contains("/v/t") && url.contains(".mp4", ignoreCase = true)) ||
-                        (url.contains("fbcdn.net") && url.contains("bytestart=") && !url.contains(".jpg")) ||
-                        (url.contains("cdninstagram.com") && url.contains(".mp4"))
+                        (url.contains("video-", ignoreCase = true) && url.contains("fbcdn.net", ignoreCase = true)) ||
+                        (url.contains("fbcdn.net", ignoreCase = true) && (url.contains("/v/t") || url.contains("bytestart=")) && !url.contains(".jpg") && !url.contains(".png") && !url.contains(".webp")) ||
+                        (url.contains("cdninstagram.com", ignoreCase = true) && (url.contains(".mp4") || url.contains("/v/"))) ||
+                        url.contains("tiktokcdn.com", ignoreCase = true) ||
+                        url.contains("byteoversea.com", ignoreCase = true) ||
+                        url.contains("video.twimg.com", ignoreCase = true) ||
+                        url.contains("whatsapp.net", ignoreCase = true) ||
+                        url.contains("videoplayback", ignoreCase = true) ||
+                        url.contains("mime=video", ignoreCase = true)
 
                 if (isVideo) {
                     lastInterceptedVideoUrl = url
                     lastInterceptedVideoTime = System.currentTimeMillis()
+                    val webUrl = savedActiveUrl
+                    val platform = DownloadHelper.derivePlatformPrefix(if (webUrl.isNotBlank() && !webUrl.startsWith("about:") && !webUrl.startsWith("home")) webUrl else url)
                     activity?.runOnUiThread {
-                        addDetectedMedia("facebook_video_${System.currentTimeMillis() % 1000000}", url, true)
+                        addDetectedMedia("${platform}_video_${System.currentTimeMillis() % 1000000}", url, true)
                     }
                 }
                 return super.shouldInterceptRequest(view, request)
@@ -1000,17 +1020,23 @@ class BrowserFragment : Fragment() {
         if (!isAdded) return
 
         var targetUrl = url
-        val isVid = type.contains("video", true) || type.contains("reel", true)
+        val isVid = type.contains("video", true) || type.contains("reel", true) ||
+                url.contains(".mp4", true) || url.contains(".webm", true) ||
+                url.contains("video.xx.fbcdn.net", true) ||
+                (url.contains("fbcdn.net", true) && url.contains("/v/t", true) && !url.contains(".jpg", true))
 
         if (targetUrl.isBlank() || !targetUrl.startsWith("http") || targetUrl.startsWith("blob:")) {
             val intercepted = lastInterceptedVideoUrl
-            if (isVid && !intercepted.isNullOrBlank() && (System.currentTimeMillis() - lastInterceptedVideoTime) < 8000L) {
+            if (isVid && !intercepted.isNullOrBlank()) {
                 targetUrl = intercepted
             } else {
-                val candidate = detectedMediaList.firstOrNull { it.isVideo == isVid }?.url
+                val candidate = (if (isVid) detectedMediaList.firstOrNull { it.isVideo }?.url else null)
+                    ?: detectedMediaList.firstOrNull { it.isVideo == isVid }?.url
                     ?: detectedMediaList.firstOrNull()?.url
                 if (!candidate.isNullOrBlank() && candidate.startsWith("http")) {
                     targetUrl = candidate
+                } else if (isVid) {
+                    targetUrl = ""
                 } else {
                     Toast.makeText(
                         requireContext(),
@@ -1023,8 +1049,17 @@ class BrowserFragment : Fragment() {
             }
         }
 
-        val cleanName = if (title.isBlank() || title.equals("facebook_photo", true) || title.equals("facebook_video", true)) {
-            "facebook_${System.currentTimeMillis() % 100000000}"
+        targetUrl = DownloadHelper.cleanMediaUrl(targetUrl)
+
+        if (!isVid && DownloadHelper.isProfileOrAvatarUrl(targetUrl)) {
+            return
+        }
+
+        val platform = DownloadHelper.derivePlatformPrefix(if (savedActiveUrl.isNotBlank()) savedActiveUrl else targetUrl)
+        val cleanName = if (title.isBlank() || title.equals("facebook_photo", true) || title.equals("facebook_video", true) || title.equals("media", true)) {
+            "${platform}_${if (isVid) "video" else "photo"}_${System.currentTimeMillis() % 100000000}"
+        } else if (!title.startsWith(platform, ignoreCase = true) && !title.contains("_")) {
+            "${platform}_$title"
         } else {
             title
         }
@@ -1035,50 +1070,178 @@ class BrowserFragment : Fragment() {
             title = cleanName,
             url = targetUrl,
             thumbnailUrl = cleanThumb,
-            sizeFormatted = if (isVid) "5.19MB" else "15.67 kB",
-            isVideo = isVid
+            sizeFormatted = if (isVid) "5.19MB" else "15.67kB",
+            isVideo = isVid,
+            isChecked = true
         )
         addDetectedMedia(cleanName, targetUrl, isVid, cleanThumb)
 
-        // Open bottom sheet dialog BEFORE start download (matching Screenshot 1)
-        val sheet = DownloadBottomSheetFragment.newInstance(listOf(mediaItem)) { selectedItems ->
-            val selected = selectedItems.firstOrNull() ?: mediaItem
-            val downloadedItem = DownloadHelper.downloadMedia(
-                context = requireContext(),
-                url = selected.url,
-                type = if (selected.isVideo) "video" else "image",
-                customName = selected.title,
-                thumbUrl = selected.thumbnailUrl
-            ) { updatedItem ->
-                activity?.runOnUiThread {
-                    onMediaDownloaded?.invoke(listOf(updatedItem))
+        // Notification permission check (up to 2 times system prompt, then custom settings dialog)
+        activity?.let { NotificationPermissionHelper.checkAndRequestPermission(it) }
+
+        // For a single media item click: show ONLY this single clicked item at download time!
+        val candidates = mutableListOf(mediaItem)
+
+        // Open bottom sheet dialog BEFORE start download
+        val sheet = DownloadBottomSheetFragment.newInstance(candidates) { selectedItems ->
+            selectedItems.forEach { selected ->
+                var actualUrl = selected.url
+                if (actualUrl.isBlank() || actualUrl.startsWith("blob:")) {
+                    actualUrl = (lastInterceptedVideoUrl ?: "").ifBlank {
+                        detectedMediaList.firstOrNull { it.isVideo }?.url ?: ""
+                    }
+                }
+                if (actualUrl.isBlank()) return@forEach
+
+                val downloadedItem = DownloadHelper.downloadMedia(
+                    context = requireContext(),
+                    url = actualUrl,
+                    type = if (selected.isAudio) "audio" else if (selected.isVideo) "video" else "image",
+                    customName = selected.title,
+                    thumbUrl = selected.thumbnailUrl
+                ) { updatedItem ->
+                    activity?.runOnUiThread {
+                        onMediaDownloaded?.invoke(listOf(updatedItem))
+                    }
+                }
+
+                if (downloadedItem != null) {
+                    onMediaDownloaded?.invoke(listOf(downloadedItem))
+                    addDetectedMedia(downloadedItem.title, actualUrl, downloadedItem.isVideo, selected.thumbnailUrl)
                 }
             }
 
-            if (downloadedItem != null) {
-                onMediaDownloaded?.invoke(listOf(downloadedItem))
-                addDetectedMedia(downloadedItem.title, selected.url, downloadedItem.isVideo, selected.thumbnailUrl)
+            val rootV = _binding?.root
+            if (rootV != null) {
+                val message = if (selectedItems.size == 1) {
+                    "Downloading ${selectedItems.first().title}..."
+                } else {
+                    "Downloading ${selectedItems.size} files..."
+                }
+                com.google.android.material.snackbar.Snackbar.make(
+                    rootV,
+                    message,
+                    com.google.android.material.snackbar.Snackbar.LENGTH_LONG
+                ).setAction("VIEW") {
+                    (activity as? MainActivity)?.showDownloads()
+                }.show()
+            }
+        }
+        sheet.show(parentFragmentManager, DownloadBottomSheetFragment.TAG)
+    }
+
+    /**
+     * Handles downloading multiple images belonging to the same post / carousel (multipal gram).
+     */
+    fun handleMultiMediaDownloadFromWeb(jsonArrayStr: String, type: String, title: String) {
+        if (!isAdded) return
+        activity?.let { NotificationPermissionHelper.checkAndRequestPermission(it) }
+        try {
+            val jsonArray = JSONArray(jsonArrayStr)
+            val candidates = mutableListOf<MediaItem>()
+            val platform = DownloadHelper.derivePlatformPrefix(savedActiveUrl)
+
+            var hasAnySelected = false
+            for (i in 0 until jsonArray.length()) {
+                if (jsonArray.getJSONObject(i).optBoolean("isSelected", false)) {
+                    hasAnySelected = true
+                    break
+                }
+            }
+
+            val isRequestedVideo = type.contains("video", true) || type.contains("reel", true)
+            for (i in 0 until jsonArray.length()) {
+                val obj = jsonArray.getJSONObject(i)
+                val isVideo = obj.optBoolean("isVideo", false)
+                // If downloading a video, never include photos
+                if (isRequestedVideo && !isVideo) continue
+                // If downloading photos, never include videos
+                if (!isRequestedVideo && isVideo) continue
+
+                val rawUrl = obj.optString("url")
+                val url = DownloadHelper.cleanMediaUrl(rawUrl)
+                if (url.isBlank() || !url.startsWith("http")) continue
+                if (!isVideo && DownloadHelper.isProfileOrAvatarUrl(url)) continue
+                val thumb = obj.optString("thumb").ifBlank { url }
+                val itemTitle = obj.optString("title").ifBlank {
+                    "${platform}_${if (isVideo) "video" else "photo"}_${System.currentTimeMillis() % 1000000}_${i + 1}"
+                }
+                val isChecked = if (hasAnySelected) {
+                    obj.optBoolean("isSelected", false)
+                } else {
+                    i == 0
+                }
+
+                val item = MediaItem(
+                    id = (System.currentTimeMillis() + i).toString(),
+                    title = itemTitle,
+                    url = url,
+                    thumbnailUrl = thumb,
+                    sizeFormatted = if (isVideo) "5.19MB" else "15.67kB",
+                    isVideo = isVideo,
+                    isChecked = isChecked
+                )
+                candidates.add(item)
+                addDetectedMedia(itemTitle, url, isVideo, thumb)
+            }
+
+            if (candidates.isEmpty()) return
+
+            if (candidates.size == 1 || candidates.none { it.isChecked }) {
+                candidates[0] = candidates[0].copy(isChecked = true)
+            }
+
+            val sheet = DownloadBottomSheetFragment.newInstance(candidates) { selectedItems ->
+                selectedItems.forEach { selected ->
+                    val downloadedItem = DownloadHelper.downloadMedia(
+                        context = requireContext(),
+                        url = selected.url,
+                        type = if (selected.isAudio) "audio" else if (selected.isVideo) "video" else "image",
+                        customName = selected.title,
+                        thumbUrl = selected.thumbnailUrl
+                    ) { updatedItem ->
+                        activity?.runOnUiThread {
+                            onMediaDownloaded?.invoke(listOf(updatedItem))
+                        }
+                    }
+
+                    if (downloadedItem != null) {
+                        onMediaDownloaded?.invoke(listOf(downloadedItem))
+                    }
+                }
 
                 val rootV = _binding?.root
                 if (rootV != null) {
+                    val message = if (selectedItems.size == 1) {
+                        "Downloading ${selectedItems.first().title}..."
+                    } else {
+                        "Downloading ${selectedItems.size} files..."
+                    }
                     com.google.android.material.snackbar.Snackbar.make(
                         rootV,
-                        "Saved ${downloadedItem.title} to Files!",
+                        message,
                         com.google.android.material.snackbar.Snackbar.LENGTH_LONG
                     ).setAction("VIEW") {
                         (activity as? MainActivity)?.showDownloads()
                     }.show()
                 }
             }
+            sheet.show(parentFragmentManager, DownloadBottomSheetFragment.TAG)
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
-        sheet.show(parentFragmentManager, DownloadBottomSheetFragment.TAG)
     }
 
     fun addDetectedMedia(name: String, url: String, isVideo: Boolean, thumb: String? = null) {
         if (url.isBlank() || !url.startsWith("http") || url.startsWith("blob:")) return
+        if (!isVideo && DownloadHelper.isProfileOrAvatarUrl(url)) return
         if (detectedMediaList.none { it.url == url }) {
-            val cleanName = if (name.isBlank() || name.equals("facebook_photo", true) || name.equals("facebook_video", true)) {
-                "facebook_${System.currentTimeMillis() % 100000000}"
+            val currentWebUrl = savedActiveUrl
+            val platform = DownloadHelper.derivePlatformPrefix(if (currentWebUrl.isNotBlank() && !currentWebUrl.startsWith("about:") && !currentWebUrl.startsWith("home")) currentWebUrl else url)
+            val cleanName = if (name.isBlank() || name.equals("facebook_photo", true) || name.equals("facebook_video", true) || name.equals("media", true)) {
+                "${platform}_${if (isVideo) "video" else "photo"}_${System.currentTimeMillis() % 100000000}"
+            } else if (!name.startsWith(platform, ignoreCase = true) && !name.contains("_")) {
+                "${platform}_$name"
             } else {
                 name
             }
@@ -1089,7 +1252,7 @@ class BrowserFragment : Fragment() {
                     title = cleanName,
                     url = url,
                     thumbnailUrl = if (!thumb.isNullOrBlank() && thumb.startsWith("http")) thumb else url,
-                    sizeFormatted = if (isVideo) "3.42 MB" else "15.67 kB",
+                    sizeFormatted = if (isVideo) "3.42 MB" else "15.67kB",
                     isVideo = isVideo
                 )
             )
@@ -1113,6 +1276,9 @@ class BrowserFragment : Fragment() {
         b.clHomeScreen.visibility = View.VISIBLE
         b.webView.visibility = View.GONE
         b.nsvFacebookFeed.visibility = View.GONE
+
+        // Request notification permission on Home screen (up to 2 times system prompt, then custom dialog)
+        activity?.let { NotificationPermissionHelper.checkAndRequestPermission(it) }
 
         b.etHomeSearch.setText("")
         if (!keepTopUrl) {
@@ -1230,6 +1396,9 @@ class BrowserFragment : Fragment() {
         b.webView.visibility = View.VISIBLE
         b.nsvFacebookFeed.visibility = View.GONE
 
+        // Clear detected media from previous page
+        detectedMediaList.clear()
+
         val finalUrl = when {
             target.startsWith("http://") || target.startsWith("https://") -> target
             target.contains(".") && !target.contains(" ") -> "https://$target"
@@ -1268,7 +1437,13 @@ class BrowserFragment : Fragment() {
 
     fun showDownloadBottomSheet() {
         if (!isAdded) return
-        val sheet = DownloadBottomSheetFragment.newInstance(detectedMediaList) { selectedItems ->
+        activity?.let { NotificationPermissionHelper.checkAndRequestPermission(it) }
+        if (detectedMediaList.isEmpty()) {
+            Toast.makeText(requireContext(), "No media detected on this page yet", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val items = detectedMediaList.mapIndexed { index, item -> item.copy(isChecked = (index == 0)) }
+        val sheet = DownloadBottomSheetFragment.newInstance(items) { selectedItems ->
             selectedItems.forEach { item ->
                 DownloadHelper.downloadMedia(
                     context = requireContext(),

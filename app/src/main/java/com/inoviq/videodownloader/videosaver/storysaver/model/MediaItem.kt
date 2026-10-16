@@ -10,8 +10,10 @@ data class MediaItem(
     val sizeBytes: Long = 0L,
     val sizeFormatted: String = "15.67kB",
     val isVideo: Boolean = false,
+    val isAudio: Boolean = false,
     var isChecked: Boolean = true,
     var downloadProgress: Int = 0,
     var isDownloaded: Boolean = false,
+    var isPaused: Boolean = false,
     var localPath: String? = null
 ) : Serializable

@@ -21,7 +21,6 @@ class BookmarkActivity : AppCompatActivity() {
     private lateinit var binding: ActivityBookmarkBinding
     private lateinit var bookmarkAdapter: BookmarkAdapter
     private var bookmarkList = mutableListOf<BookmarkEntry>()
-
     companion object {
         const val EXTRA_NAVIGATE_URL = "EXTRA_NAVIGATE_URL"
         const val EXTRA_NEW_TAB_URL = "EXTRA_NEW_TAB_URL"

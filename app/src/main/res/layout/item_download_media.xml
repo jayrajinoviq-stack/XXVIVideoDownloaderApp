@@ -5,15 +5,17 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:paddingHorizontal="16dp"
-    android:paddingVertical="10dp">
+    android:paddingVertical="5dp">
 
     <!-- Checkbox -->
-    <CheckBox
+    <ImageView
         android:id="@+id/cbSelect"
         android:layout_width="26dp"
         android:layout_height="26dp"
-        android:button="@drawable/selector_custom_checkbox"
-        android:checked="true"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="Select"
+        android:scaleType="fitCenter"
+        android:src="@drawable/ic_custom_checkbox_checked"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
@@ -21,9 +23,9 @@
     <!-- Media Thumbnail -->
     <com.google.android.material.imageview.ShapeableImageView
         android:id="@+id/ivThumbnail"
-        android:layout_width="58dp"
-        android:layout_height="58dp"
-        android:layout_marginStart="14dp"
+        android:layout_width="60dp"
+        android:layout_height="60dp"
+        android:layout_marginStart="12dp"
         android:scaleType="centerCrop"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toEndOf="@id/cbSelect"
@@ -36,13 +38,13 @@
         android:id="@+id/llDetails"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="14dp"
+        android:layout_marginStart="12dp"
         android:layout_marginEnd="10dp"
         android:orientation="vertical"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintBottom_toBottomOf="@id/ivThumbnail"
         app:layout_constraintEnd_toStartOf="@id/btnRename"
         app:layout_constraintStart_toEndOf="@id/ivThumbnail"
-        app:layout_constraintTop_toTopOf="parent">
+        app:layout_constraintTop_toTopOf="@id/ivThumbnail">
 
         <TextView
             android:id="@+id/tvTitle"
@@ -50,8 +52,8 @@
             android:layout_height="wrap_content"
             android:ellipsize="middle"
             android:maxLines="1"
-            android:textColor="@color/text_dark"
-            android:textSize="15sp"
+            android:textColor="@color/black"
+            android:textSize="17sp"
             android:textStyle="bold"
             tools:text="facebook_170085002" />
 
@@ -59,9 +61,9 @@
             android:id="@+id/tvSize"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:textColor="@color/text_gray"
-            android:textSize="13sp"
+            android:layout_marginTop="4dp"
+            android:textColor="#7D8597"
+            android:textSize="14sp"
             tools:text="15.67kB" />
     </LinearLayout>
 
@@ -72,15 +74,16 @@
         android:layout_height="wrap_content"
         android:background="@drawable/bg_btn_rename_outline"
         android:clickable="true"
+        android:elevation="0dp"
         android:focusable="true"
         android:paddingHorizontal="14dp"
         android:paddingVertical="5dp"
+        android:stateListAnimator="@null"
         android:text="Rename"
-        android:textColor="@color/text_dark"
-        android:textSize="12sp"
+        android:textColor="@color/black"
+        android:textSize="13sp"
         android:textStyle="normal"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintBottom_toBottomOf="@id/ivThumbnail"
+        app:layout_constraintEnd_toEndOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -2,6 +2,7 @@ package com.inoviq.videodownloader.videosaver.storysaver.ui.dialogs
 
 import android.content.Context
 import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -15,6 +16,8 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import coil.load
 import coil.transform.RoundedCornersTransformation
+import com.google.android.material.bottomsheet.BottomSheetBehavior
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.inoviq.videodownloader.videosaver.storysaver.R
 import com.inoviq.videodownloader.videosaver.storysaver.adapter.DownloadMediaAdapter
@@ -39,11 +42,28 @@ class DownloadBottomSheetFragment : BottomSheetDialogFragment() {
         return binding.root
     }
 
+    override fun onStart() {
+        super.onStart()
+        val d = dialog as? BottomSheetDialog
+        val sheet = d?.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
+        sheet?.let {
+            it.background = ColorDrawable(Color.TRANSPARENT)
+            val behavior = BottomSheetBehavior.from(it)
+            val displayMetrics = resources.displayMetrics
+            val maxHeight = (displayMetrics.heightPixels * 0.78).toInt()
+            if (mediaItems.size > 2) {
+                behavior.peekHeight = maxHeight
+            }
+            behavior.state = BottomSheetBehavior.STATE_EXPANDED
+            behavior.skipCollapsed = true
+        }
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, 0, systemBars.right, systemBars.bottom)
+            v.setPadding(systemBars.left, 0, systemBars.right, 0)
             insets
         }
 
@@ -51,8 +71,15 @@ class DownloadBottomSheetFragment : BottomSheetDialogFragment() {
             dismiss()
         }
 
-        val isSingleMode = mediaItems.size <= 1
-        if (isSingleMode) {
+        // If any video is present in mediaItems, never mix it with photos
+        if (mediaItems.any { it.isVideo }) {
+            mediaItems.removeAll { !it.isVideo }
+        }
+
+        // Single Video Mode (720P, 480P, Audio) is ONLY shown for video downloads.
+        // For images (single image or multiple images), show the standard media list (matching screenshot).
+        val isSingleVideo = mediaItems.size == 1 && mediaItems.first().isVideo
+        if (isSingleVideo) {
             setupSingleVideoMode()
         } else {
             setupMultiMediaMode()
@@ -62,6 +89,7 @@ class DownloadBottomSheetFragment : BottomSheetDialogFragment() {
     private fun setupSingleVideoMode() {
         binding.llSingleVideoMode.visibility = View.VISIBLE
         binding.rvMedia.visibility = View.GONE
+        binding.btnClose.text = "Close"
         binding.btnDownload.text = "Download"
 
         val item = mediaItems.firstOrNull() ?: return
@@ -97,7 +125,22 @@ class DownloadBottomSheetFragment : BottomSheetDialogFragment() {
         }
 
         binding.btnDownload.setOnClickListener {
+            val isAudio = (selectedQuality == "Audio")
+            val baseTitle = if (isAudio) {
+                if (item.title.contains("video", ignoreCase = true)) {
+                    item.title.replace("video", "audio", ignoreCase = true)
+                } else if (!item.title.contains("audio", ignoreCase = true)) {
+                    "${item.title}_audio"
+                } else {
+                    item.title
+                }
+            } else {
+                item.title
+            }
             val finalItem = item.copy(
+                title = baseTitle,
+                isVideo = !isAudio,
+                isAudio = isAudio,
                 sizeFormatted = when (selectedQuality) {
                     "720P" -> "5.19MB"
                     "480P" -> "0.94MB"
@@ -177,6 +220,7 @@ class DownloadBottomSheetFragment : BottomSheetDialogFragment() {
     private fun setupMultiMediaMode() {
         binding.llSingleVideoMode.visibility = View.GONE
         binding.rvMedia.visibility = View.VISIBLE
+        binding.btnClose.text = "Cancel"
 
         val adapter = DownloadMediaAdapter(mediaItems) {
             updateDownloadButtonState()
@@ -184,6 +228,7 @@ class DownloadBottomSheetFragment : BottomSheetDialogFragment() {
 
         binding.rvMedia.layoutManager = LinearLayoutManager(requireContext())
         binding.rvMedia.adapter = adapter
+        updateDownloadButtonState()
 
         binding.btnDownload.setOnClickListener {
             val checked = adapter.getCheckedItems()
@@ -194,7 +239,7 @@ class DownloadBottomSheetFragment : BottomSheetDialogFragment() {
 
             Toast.makeText(
                 requireContext(),
-                "Downloading ${checked.size} ${if (checked.size == 1) "item" else "items"}...",
+                "Downloading ${checked.size} ${if (checked.size == 1) "file" else "files"}...",
                 Toast.LENGTH_SHORT
             ).show()
 
@@ -206,7 +251,8 @@ class DownloadBottomSheetFragment : BottomSheetDialogFragment() {
     private fun updateDownloadButtonState() {
         val adapter = binding.rvMedia.adapter as? DownloadMediaAdapter
         val count = adapter?.getCheckedItems()?.size ?: 0
-        binding.btnDownload.text = if (count > 0) "Download ($count)" else "Download"
+        binding.btnDownload.text = if (count > 1) "Download ($count)" else "Download"
+        binding.btnDownload.alpha = if (count > 0) 1.0f else 0.5f
     }
 
     fun setMediaList(items: List<MediaItem>, onDownload: (List<MediaItem>) -> Unit) {

@@ -85,7 +85,6 @@ object DownloadStore {
                 url.contains("picsum.photos") ||
                 thumb.contains("picsum.photos") ||
                 thumb.contains("example.com") ||
-                title.contains("170085") ||
                 title.contains("dummy") ||
                 title.contains("mock")
     }
@@ -105,13 +104,13 @@ object DownloadStore {
                     val title = obj.optString("title", "facebook_media")
 
                     // Filter out any default mock items
-                    if (url.contains("example.com") || thumb.contains("picsum.photos") || title.contains("170085") || title.contains("dummy")) {
+                    if (url.contains("example.com") || thumb.contains("picsum.photos") || title.contains("dummy") || title.contains("mock")) {
                         continue
                     }
 
                     val localPath = if (obj.has("localPath") && !obj.isNull("localPath")) obj.getString("localPath") else null
                     val sizeBytes = obj.optLong("sizeBytes", 0L)
-                    val sizeStr = obj.optString("sizeFormatted", if (obj.optBoolean("isVideo", false)) "3.42 MB" else "15.67 kB")
+                    val sizeStr = obj.optString("sizeFormatted", if (obj.optBoolean("isVideo", false)) "3.42 MB" else "15.67kB")
 
                     items.add(
                         MediaItem(

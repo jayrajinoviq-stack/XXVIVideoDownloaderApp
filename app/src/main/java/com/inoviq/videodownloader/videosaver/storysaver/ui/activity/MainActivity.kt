@@ -102,6 +102,18 @@ class MainActivity : AppCompatActivity() {
         setupFragmentsAndNavigation()
         setupTabsDrawer()
         setupBackNavigation()
+
+        if (intent.getBooleanExtra("SHOW_DOWNLOADS", false)) {
+            binding.root.post { showDownloads() }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        if (intent.getBooleanExtra("SHOW_DOWNLOADS", false)) {
+            binding.root.post { showDownloads() }
+        }
     }
 
     private fun initTabsAndHistory() {

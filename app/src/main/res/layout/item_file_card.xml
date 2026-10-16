@@ -87,6 +87,18 @@
                 android:textSize="11sp"
                 android:textStyle="bold"
                 tools:text="IMAGE" />
+
+            <!-- Horizontal Download Progress Bar -->
+            <ProgressBar
+                android:id="@+id/pbDownloadProgress"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="5dp"
+                android:layout_marginTop="6dp"
+                android:max="100"
+                android:progress="0"
+                android:progressTint="@color/primary_orange"
+                android:visibility="gone" />
         </LinearLayout>
 
         <!-- Action Buttons (Share, Delete) -->
@@ -124,6 +136,44 @@
                 android:src="@drawable/ic_delete_bin_gray"
                 app:tint="@color/red" />
 
+        </LinearLayout>
+
+        <!-- Active Download Controls (Pause / Resume / Cancel) -->
+        <LinearLayout
+            android:id="@+id/llDownloadControls"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <ImageView
+                android:id="@+id/btnPauseResume"
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:background="@drawable/bg_circle_orange_fab"
+                android:clickable="true"
+                android:contentDescription="Pause or Resume"
+                android:focusable="true"
+                android:padding="8dp"
+                android:src="@drawable/ic_pause"
+                app:tint="@color/white" />
+
+            <ImageView
+                android:id="@+id/btnCancelDownload"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginStart="8dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:contentDescription="Cancel Download"
+                android:focusable="true"
+                android:padding="6dp"
+                android:src="@drawable/ic_close_cross"
+                app:tint="@color/text_gray" />
         </LinearLayout>
 
         <ImageView
