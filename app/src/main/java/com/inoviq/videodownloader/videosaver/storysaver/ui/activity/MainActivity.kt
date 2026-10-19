@@ -154,7 +154,6 @@ class MainActivity : AppCompatActivity() {
                 .commit()
         }
 
-
         browserFragment.onTabSwitcherClicked = {
             openTabsDrawer()
         }
@@ -171,6 +170,14 @@ class MainActivity : AppCompatActivity() {
                 historyList.add(0, HistoryItem(title, url))
             }
         }
+
+        // Initialize the first tab's WebView after the fragment view is ready
+        binding.root.post {
+            val firstTab = openTabs.firstOrNull { it.isCurrent } ?: openTabs.firstOrNull()
+            if (firstTab != null) {
+                browserFragment.switchToTab(firstTab.id, firstTab.url)
+            }
+        }
     }
 
     private fun setupTabsDrawer() {
@@ -181,12 +188,8 @@ class MainActivity : AppCompatActivity() {
                 openTabs.forEach { it.isCurrent = false }
                 tab.isCurrent = true
                 tabAdapter.notifyDataSetChanged()
-
-                if (tab.url.isBlank() || tab.url.equals("home", true)) {
-                    browserFragment.showHomeScreen(keepTopUrl = false)
-                } else {
-                    browserFragment.loadUrl(tab.url)
-                }
+                // Switch to the tapped tab instantly — no reload
+                browserFragment.switchToTab(tab.id, tab.url)
                 closeTabsDrawer()
             },
             onCloseClick = { tab, position ->
@@ -242,11 +245,8 @@ class MainActivity : AppCompatActivity() {
         binding.rvDrawerTabs.smoothScrollToPosition(openTabs.size - 1)
         updateTabCountState()
 
-        if (hasUrl) {
-            browserFragment.loadUrl(initialUrl!!)
-        } else {
-            browserFragment.showHomeScreen(keepTopUrl = false)
-        }
+        // Switch to the new tab's isolated WebView session
+        browserFragment.switchToTab(newTab.id, initialUrl ?: "")
         closeTabsDrawer()
     }
 
@@ -254,14 +254,13 @@ class MainActivity : AppCompatActivity() {
         if (openTabs.size > 1) {
             val wasCurrent = tab.isCurrent
             openTabs.removeAt(position)
+            // Destroy the closed tab's WebView to free memory
+            browserFragment.destroyTab(tab.id)
             if (wasCurrent) {
                 val next = openTabs.last()
                 next.isCurrent = true
-                if (next.url.isBlank() || next.url.equals("home", true)) {
-                    browserFragment.showHomeScreen(keepTopUrl = false)
-                } else {
-                    browserFragment.loadUrl(next.url)
-                }
+                // Switch to the next tab instantly
+                browserFragment.switchToTab(next.id, next.url)
             }
             tabAdapter.notifyDataSetChanged()
             updateTabCountState()

@@ -75,6 +75,14 @@ class BrowserFragment : Fragment() {
     private var savedActiveTitle: String = ""
     private var isSearchOverlayOpen: Boolean = false
 
+    // --- Chrome-style per-tab WebView map ---
+    // Each tab ID maps to its own persistent WebView instance.
+    // Switching tabs hides the old WebView and shows the new one — no reload.
+    private val tabWebViews = mutableMapOf<String, WebView>()
+    // Tracks whether each tab is on its home screen (no page loaded) or has a loaded page.
+    private val tabIsHome = mutableMapOf<String, Boolean>()
+    private var activeTabId: String = ""
+
     var onTabSwitcherClicked: ((View) -> Unit)? = null
     var onTabUpdated: ((title: String, url: String) -> Unit)? = null
     var onMediaDownloaded: ((List<MediaItem>) -> Unit)? = null
@@ -91,16 +99,14 @@ class BrowserFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        // Hide the static XML WebView — we use dynamically created per-tab WebViews instead
+        binding.webView.visibility = View.GONE
+
         binding.tvTabCountBadge.text = currentTabCount.toString()
         setupTopBar()
         setupHomeScreenShortcuts()
-        setupWebView()
 
         binding.nsvHomeScreen.setOnTouchListener { _, _ ->
-            binding.cardSearchSuggestions.visibility = View.GONE
-            false
-        }
-        binding.webView.setOnTouchListener { _, _ ->
             binding.cardSearchSuggestions.visibility = View.GONE
             false
         }
@@ -113,7 +119,8 @@ class BrowserFragment : Fragment() {
             insets
         }
 
-        // By default on first open, show Home Screen (Image 4)
+        // Home screen shown by default; the first real tab WebView is created by MainActivity
+        // via switchToTab() once it sets up tab data.
         showHomeScreen()
     }
 
@@ -290,7 +297,7 @@ class BrowserFragment : Fragment() {
 
         val b = _binding ?: return
         savedActiveUrl = b.etUrl.text.toString().trim()
-        savedActiveTitle = b.webView.title ?: derivePlatformTitle(savedActiveUrl)
+        savedActiveTitle = activeWebView()?.title?.takeIf { it.isNotBlank() } ?: derivePlatformTitle(savedActiveUrl)
 
         // Clear top address bar for new query entry as requested
         isProgrammaticTextChange = true
@@ -300,7 +307,7 @@ class BrowserFragment : Fragment() {
 
         // Setup Current Page Card if on a website
         val isHomeScreen = b.clHomeScreen.visibility == View.VISIBLE ||
-                b.webView.visibility != View.VISIBLE ||
+                activeWebView() == null ||
                 savedActiveUrl.isBlank() ||
                 savedActiveUrl.equals("about:blank", true) ||
                 savedActiveUrl.equals("home", true)
@@ -502,7 +509,7 @@ class BrowserFragment : Fragment() {
                         binding.rvOverlaySuggestions.visibility = View.GONE
 
                         val isHomeScreen = binding.clHomeScreen.visibility == View.VISIBLE ||
-                                binding.webView.visibility != View.VISIBLE ||
+                                activeWebView() == null ||
                                 savedActiveUrl.isBlank() ||
                                 savedActiveUrl.equals("about:blank", true) ||
                                 savedActiveUrl.equals("home", true)
@@ -562,10 +569,11 @@ class BrowserFragment : Fragment() {
             isOutsideTouchable = true
         }
 
+        val activeWv = activeWebView()
         val isHomeScreen = binding.clHomeScreen.visibility == View.VISIBLE ||
-                binding.webView.visibility != View.VISIBLE ||
-                binding.webView.url.isNullOrBlank() ||
-                binding.webView.url.equals("about:blank", ignoreCase = true)
+                activeWv == null ||
+                savedActiveUrl.isBlank() ||
+                savedActiveUrl.equals("about:blank", ignoreCase = true)
 
         if (isHomeScreen) {
             popupBinding.menuItemShare.alpha = 0.5f
@@ -586,7 +594,7 @@ class BrowserFragment : Fragment() {
                 Toast.makeText(context, "Cannot share home screen", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            val currentUrl = binding.webView.url ?: binding.etUrl.text.toString().trim()
+            val currentUrl = savedActiveUrl.ifBlank { binding.etUrl.text.toString().trim() }
             if (currentUrl.isBlank() || currentUrl.equals("about:blank", true) || currentUrl.equals("home", true)) {
                 Toast.makeText(context, "Cannot share home screen", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
@@ -624,12 +632,12 @@ class BrowserFragment : Fragment() {
                 Toast.makeText(context, "Cannot bookmark home screen", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            val currentUrl = binding.webView.url ?: binding.etUrl.text.toString().trim()
+            val currentUrl = savedActiveUrl.ifBlank { binding.etUrl.text.toString().trim() }
             if (currentUrl.isBlank() || currentUrl.equals("about:blank", true) || currentUrl.equals("home", true)) {
                 Toast.makeText(context, "Cannot bookmark home screen", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            val title = binding.webView.title?.takeIf { it.isNotBlank() } ?: derivePlatformTitle(currentUrl)
+            val title = savedActiveTitle.ifBlank { derivePlatformTitle(currentUrl) }
             (activity as? MainActivity)?.addBookmark(title, currentUrl)
         }
 
@@ -640,7 +648,7 @@ class BrowserFragment : Fragment() {
                 Toast.makeText(context, "Cannot copy link from home screen", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            val currentUrl = binding.webView.url ?: binding.etUrl.text.toString().trim()
+            val currentUrl = savedActiveUrl.ifBlank { binding.etUrl.text.toString().trim() }
             if (currentUrl.isBlank() || currentUrl.equals("about:blank", true) || currentUrl.equals("home", true)) {
                 Toast.makeText(context, "Cannot copy link from home screen", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
@@ -818,27 +826,47 @@ class BrowserFragment : Fragment() {
     }
 
     private fun toggleDesktopMode() {
-        val current = binding.webView.settings.userAgentString ?: ""
+        val wv = activeWebView() ?: return
+        val current = wv.settings.userAgentString ?: ""
         if (current.contains("Mobile")) {
-            binding.webView.settings.userAgentString =
+            wv.settings.userAgentString =
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
             Toast.makeText(requireContext(), "Switched to Desktop Site", Toast.LENGTH_SHORT).show()
         } else {
-            binding.webView.settings.userAgentString =
+            wv.settings.userAgentString =
                 "Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
             Toast.makeText(requireContext(), "Switched to Mobile Site", Toast.LENGTH_SHORT).show()
         }
-        binding.webView.reload()
+        wv.reload()
     }
 
+    // -----------------------------------------------------------------------------------------
+    // Per-tab WebView management (Chrome-style)
+    // -----------------------------------------------------------------------------------------
+
+    /** Returns the currently active tab's WebView, or null. */
+    private fun activeWebView(): WebView? = tabWebViews[activeTabId]
+
+    /**
+     * Creates a fully-configured WebView for the given tab and adds it to the container.
+     * The new WebView is immediately hidden; call [switchToTab] to activate it.
+     */
     @SuppressLint("SetJavaScriptEnabled")
-    private fun setupWebView() {
-        // Enable persistent cookies and storage for seamless login sessions
+    private fun createWebViewForTab(tabId: String): WebView {
+        val context = requireContext()
+        val wv = WebView(context)
+        wv.layoutParams = android.widget.FrameLayout.LayoutParams(
+            android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
+            android.widget.FrameLayout.LayoutParams.MATCH_PARENT
+        )
+        wv.visibility = View.GONE
+        wv.setBackgroundColor(android.graphics.Color.parseColor("#FBF8F5")) // prevent black flash before first paint
+
         val cookieManager = CookieManager.getInstance()
         cookieManager.setAcceptCookie(true)
-        cookieManager.setAcceptThirdPartyCookies(binding.webView, true)
+        cookieManager.setAcceptThirdPartyCookies(wv, true)
 
-        binding.webView.settings.apply {
+        wv.settings.apply {
             javaScriptEnabled = true
             domStorageEnabled = true
             useWideViewPort = true
@@ -854,8 +882,7 @@ class BrowserFragment : Fragment() {
                 "Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36"
         }
 
-        // Bridge to receive clicks on the injected download buttons
-        binding.webView.addJavascriptInterface(
+        wv.addJavascriptInterface(
             object {
                 @JavascriptInterface
                 fun onMediaClicked(url: String, type: String, title: String, thumb: String) {
@@ -881,33 +908,30 @@ class BrowserFragment : Fragment() {
             "XXVIBridge"
         )
 
-        binding.webView.webViewClient = object : WebViewClient() {
+        wv.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                 val uri = request?.url ?: return false
                 val urlStr = uri.toString()
-
-                if (urlStr.startsWith("http://") || urlStr.startsWith("https://")) {
-                    return false
-                }
-
+                if (urlStr.startsWith("http://") || urlStr.startsWith("https://")) return false
                 return try {
                     val intent = Intent.parseUri(urlStr, Intent.URI_INTENT_SCHEME)
-                    context?.startActivity(intent)
+                    context.startActivity(intent)
                     true
-                } catch (_: Exception) {
-                    true
-                }
+                } catch (_: Exception) { true }
             }
 
             override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
-                binding.pbLoading.visibility = View.VISIBLE
-                binding.cardSearchSuggestions.visibility = View.GONE
+                if (view != activeWebView()) return   // ignore background tabs
+                if (tabIsHome[activeTabId] == true) return  // tab is on home — ignore stale callbacks
+                val b = _binding ?: return
+                b.pbLoading.visibility = View.VISIBLE
+                b.cardSearchSuggestions.visibility = View.GONE
                 if (!url.isNullOrBlank() && !url.equals("about:blank", true) && !url.equals("home", true)) {
                     savedActiveUrl = url
                     val title = derivePlatformTitle(url)
                     savedActiveTitle = title
                     isProgrammaticTextChange = true
-                    binding.etUrl.setText(url)
+                    b.etUrl.setText(url)
                     isProgrammaticTextChange = false
                     onTabUpdated?.invoke(title, url)
                 }
@@ -915,19 +939,21 @@ class BrowserFragment : Fragment() {
             }
 
             override fun onPageFinished(view: WebView?, url: String?) {
-                binding.pbLoading.visibility = View.GONE
-                binding.cardSearchSuggestions.visibility = View.GONE
-                // Flush cookies to ensure logins persist across sessions
+                if (view != activeWebView()) return   // ignore background tabs
+                if (tabIsHome[activeTabId] == true) return  // tab is on home — ignore stale callbacks
+                val b = _binding ?: return
+                b.pbLoading.visibility = View.GONE
+                b.cardSearchSuggestions.visibility = View.GONE
                 CookieManager.getInstance().flush()
                 if (!url.isNullOrBlank() && !url.equals("about:blank", true) && !url.equals("home", true)) {
                     savedActiveUrl = url
                     val title = derivePlatformTitle(url)
                     savedActiveTitle = title
                     isProgrammaticTextChange = true
-                    binding.etUrl.setText(url)
+                    b.etUrl.setText(url)
                     isProgrammaticTextChange = false
                     onTabUpdated?.invoke(title, url)
-                    context?.let { BrowserHistoryManager.addHistory(it, title, url) }
+                    context.let { BrowserHistoryManager.addHistory(it, title, url) }
                 }
                 injectDownloaderScript(view)
             }
@@ -961,7 +987,9 @@ class BrowserFragment : Fragment() {
                     lastInterceptedVideoUrl = url
                     lastInterceptedVideoTime = System.currentTimeMillis()
                     val webUrl = savedActiveUrl
-                    val platform = DownloadHelper.derivePlatformPrefix(if (webUrl.isNotBlank() && !webUrl.startsWith("about:") && !webUrl.startsWith("home")) webUrl else url)
+                    val platform = DownloadHelper.derivePlatformPrefix(
+                        if (webUrl.isNotBlank() && !webUrl.startsWith("about:") && !webUrl.startsWith("home")) webUrl else url
+                    )
                     activity?.runOnUiThread {
                         addDetectedMedia("${platform}_video_${System.currentTimeMillis() % 1000000}", url, true)
                     }
@@ -970,15 +998,13 @@ class BrowserFragment : Fragment() {
             }
         }
 
-        binding.webView.webChromeClient = object : WebChromeClient() {
+        wv.webChromeClient = object : WebChromeClient() {
             override fun onProgressChanged(view: WebView?, newProgress: Int) {
-                binding.pbLoading.progress = newProgress
-                if (newProgress in 40..95) {
-                    injectDownloaderScript(view)
-                }
-                if (newProgress >= 100) {
-                    binding.pbLoading.visibility = View.GONE
-                }
+                if (view != activeWebView()) return
+                val b = _binding ?: return
+                b.pbLoading.progress = newProgress
+                if (newProgress in 40..95) injectDownloaderScript(view)
+                if (newProgress >= 100) b.pbLoading.visibility = View.GONE
             }
 
             override fun onConsoleMessage(consoleMessage: ConsoleMessage?): Boolean {
@@ -986,13 +1012,115 @@ class BrowserFragment : Fragment() {
                 return super.onConsoleMessage(consoleMessage)
             }
         }
+
+        wv.setOnTouchListener { _, _ ->
+            _binding?.cardSearchSuggestions?.visibility = View.GONE
+            false
+        }
+
+        binding.flBrowserContent.addView(wv)
+        tabWebViews[tabId] = wv
+        tabIsHome[tabId] = true
+        return wv
     }
+
+    /**
+     * Switches the active tab to [tabId].
+     * - Hides the currently active WebView and home screen (if visible).
+     * - Shows the target tab's WebView (or home screen if the tab has no URL).
+     * - Does NOT reload; just shows the already-loaded content instantly.
+     * - Plays a lightweight fade-in so there's no black-flash blink.
+     * If [tabId] does not have a WebView yet, one is created.
+     */
+    fun switchToTab(tabId: String, tabUrl: String = "") {
+        val b = _binding ?: return
+
+        val previousWv = activeWebView()
+
+        activeTabId = tabId
+
+        // Ensure a WebView exists for this tab
+        if (!tabWebViews.containsKey(tabId)) {
+            createWebViewForTab(tabId)
+        }
+
+        val targetWv = tabWebViews[tabId]!!
+        val isHome = tabIsHome[tabId] ?: true
+
+        if (isHome || targetWv.url.isNullOrBlank() || targetWv.url.equals("about:blank", true)) {
+            // This tab is on home screen — show home screen cleanly without black blink
+            b.clHomeScreen.animate().cancel()
+            b.clHomeScreen.alpha = 1f
+            b.clHomeScreen.visibility = View.VISIBLE
+
+            targetWv.visibility = View.GONE
+            b.pbLoading.visibility = View.GONE
+
+            // Now hide previous WebView
+            if (previousWv != targetWv) {
+                previousWv?.onPause()
+                previousWv?.visibility = View.GONE
+            }
+
+            isProgrammaticTextChange = true
+            b.etUrl.setText("")
+            isProgrammaticTextChange = false
+            savedActiveUrl = ""
+            savedActiveTitle = ""
+            b.etUrl.hint = "Search Or type URL"
+
+            refreshRecentlyUsedWebsites()
+            if (::shortcutsAdapter.isInitialized) shortcutsAdapter.setEditMode(false)
+            onTabUpdated?.invoke("Homepage", "")
+        } else {
+            // This tab has a loaded page — show it cleanly
+            b.clHomeScreen.visibility = View.GONE
+            targetWv.animate().cancel()
+            targetWv.alpha = 1f
+            targetWv.visibility = View.VISIBLE
+            targetWv.onResume()
+
+            // Now hide previous WebView
+            if (previousWv != targetWv) {
+                previousWv?.onPause()
+                previousWv?.visibility = View.GONE
+            }
+
+            val currentUrl = targetWv.url ?: tabUrl
+            val currentTitle = derivePlatformTitle(currentUrl)
+            savedActiveUrl = currentUrl
+            savedActiveTitle = currentTitle
+            isProgrammaticTextChange = true
+            b.etUrl.setText(currentUrl)
+            isProgrammaticTextChange = false
+            onTabUpdated?.invoke(currentTitle, currentUrl)
+        }
+
+        // If a url was provided and tab is home, load it now
+        if (tabUrl.isNotBlank() && (tabIsHome[tabId] == true)) {
+            loadUrl(tabUrl)
+        }
+    }
+
+    /**
+     * Destroys the WebView for a closed tab to free memory.
+     */
+    fun destroyTab(tabId: String) {
+        val wv = tabWebViews.remove(tabId) ?: return
+        tabIsHome.remove(tabId)
+        wv.stopLoading()
+        wv.destroy()
+        (wv.parent as? android.view.ViewGroup)?.removeView(wv)
+    }
+
+    // setupWebView() removed — each tab now gets its own WebView via createWebViewForTab()
 
     private val heartbeatHandler = android.os.Handler(android.os.Looper.getMainLooper())
     private val heartbeatRunnable = object : Runnable {
         override fun run() {
-            if (_binding != null && isResumed && binding.webView.visibility == View.VISIBLE) {
-                injectDownloaderScript(binding.webView)
+            val wv = activeWebView()
+            if (_binding != null && isResumed && wv != null && wv.visibility == View.VISIBLE) {
+                injectDownloaderScript(wv)
                 heartbeatHandler.postDelayed(this, 1500L)
             }
         }
@@ -1001,6 +1129,7 @@ class BrowserFragment : Fragment() {
     override fun onResume() {
         super.onResume()
         heartbeatHandler.post(heartbeatRunnable)
+        activeWebView()?.onResume()
         refreshRecentlyUsedWebsites()
         if (::shortcutsAdapter.isInitialized && isAdded) {
             shortcutsAdapter.updateShortcuts(HomeScreenShortcutManager.getShortcuts(requireContext()))
@@ -1010,10 +1139,14 @@ class BrowserFragment : Fragment() {
     override fun onPause() {
         super.onPause()
         heartbeatHandler.removeCallbacks(heartbeatRunnable)
+        activeWebView()?.onPause()
     }
 
     private fun injectDownloaderScript(view: WebView?) {
-        view?.evaluateJavascript(FacebookMediaSniffer.getInjectionScript(), null)
+        // Must run on main thread
+        view?.post {
+            view.evaluateJavascript(FacebookMediaSniffer.getInjectionScript(), null)
+        }
     }
 
     fun handleMediaDownloadFromWeb(url: String, type: String, title: String, thumb: String) {
@@ -1261,6 +1394,7 @@ class BrowserFragment : Fragment() {
 
     /**
      * Switch view state to Home Screen (Image 4).
+     * Also marks the active tab as "home" so switching back to it shows the home screen.
      */
     fun showHomeScreen(keepTopUrl: Boolean = false) {
         val b = _binding ?: return
@@ -1273,9 +1407,22 @@ class BrowserFragment : Fragment() {
         b.etHomeSearch.clearFocus()
         hideKeyboard()
 
+        // Mark active tab as home first so any pending callbacks are ignored
+        if (activeTabId.isNotEmpty()) tabIsHome[activeTabId] = true
+
+        // Hide active tab's WebView and show home screen.
+        activeWebView()?.let {
+            it.stopLoading()
+            it.loadUrl("about:blank")
+            it.clearHistory()
+            it.onPause()
+            it.visibility = View.GONE
+        }
+        b.clHomeScreen.animate().cancel()
+        b.clHomeScreen.alpha = 1f
         b.clHomeScreen.visibility = View.VISIBLE
-        b.webView.visibility = View.GONE
         b.nsvFacebookFeed.visibility = View.GONE
+        b.pbLoading.visibility = View.GONE
 
         // Request notification permission on Home screen (up to 2 times system prompt, then custom dialog)
         activity?.let { NotificationPermissionHelper.checkAndRequestPermission(it) }
@@ -1293,7 +1440,7 @@ class BrowserFragment : Fragment() {
         if (::shortcutsAdapter.isInitialized) {
             shortcutsAdapter.setEditMode(false)
         }
-        onTabUpdated?.invoke("Homepage", b.etUrl.text.toString())
+        onTabUpdated?.invoke("Homepage", "")
     }
 
     /**
@@ -1375,6 +1522,7 @@ class BrowserFragment : Fragment() {
 
     /**
      * Switch view state to WebView and navigate to URL (Image 5).
+     * Uses the active tab's own WebView — no cross-tab contamination.
      */
     fun loadUrl(url: String) {
         val target = url.trim()
@@ -1392,9 +1540,29 @@ class BrowserFragment : Fragment() {
         b.etHomeSearch.clearFocus()
         hideKeyboard()
 
+        // Ensure a WebView exists for the active tab
+        if (activeTabId.isEmpty()) {
+            // Fallback: nothing to load into yet
+            return
+        }
+        if (!tabWebViews.containsKey(activeTabId)) {
+            createWebViewForTab(activeTabId)
+        }
+        val wv = tabWebViews[activeTabId]!!
+        val wasHome = tabIsHome[activeTabId] == true || b.clHomeScreen.visibility == View.VISIBLE
+
+        // Hide home screen, show this tab's WebView
         b.clHomeScreen.visibility = View.GONE
-        b.webView.visibility = View.VISIBLE
+        wv.visibility = View.VISIBLE
+        wv.onResume()
         b.nsvFacebookFeed.visibility = View.GONE
+
+        // Mark this tab as no longer on home
+        tabIsHome[activeTabId] = false
+
+        if (wasHome) {
+            wv.clearHistory()
+        }
 
         // Clear detected media from previous page
         detectedMediaList.clear()
@@ -1408,7 +1576,7 @@ class BrowserFragment : Fragment() {
         isProgrammaticTextChange = true
         b.etUrl.setText(finalUrl)
         isProgrammaticTextChange = false
-        b.webView.loadUrl(finalUrl)
+        wv.loadUrl(finalUrl)
 
         val derivedTitle = derivePlatformTitle(finalUrl)
         onTabUpdated?.invoke(derivedTitle, finalUrl)
@@ -1474,15 +1642,12 @@ class BrowserFragment : Fragment() {
     }
 
     fun canGoBack(): Boolean {
-        if (::shortcutsAdapter.isInitialized && shortcutsAdapter.isEditMode) {
-            return true
-        }
-        if (isSearchOverlayOpen) {
-            return true
-        }
+        if (::shortcutsAdapter.isInitialized && shortcutsAdapter.isEditMode) return true
+        if (isSearchOverlayOpen) return true
         val b = _binding ?: return false
-        return (b.webView.visibility == View.VISIBLE && b.webView.canGoBack()) ||
-               (b.webView.visibility == View.VISIBLE && b.clHomeScreen.visibility != View.VISIBLE)
+        if (b.cardSearchSuggestions.visibility == View.VISIBLE) return true
+        // If clHomeScreen is NOT visible, we can always go back (either to a previous web page or to Home)
+        return b.clHomeScreen.visibility != View.VISIBLE
     }
 
     fun goBack() {
@@ -1502,11 +1667,67 @@ class BrowserFragment : Fragment() {
             hideKeyboard()
             return
         }
-        if (b.webView.visibility == View.VISIBLE && b.webView.canGoBack()) {
-            b.webView.goBack()
-        } else if (b.webView.visibility == View.VISIBLE) {
+        val wv = activeWebView()
+        if (wv != null && wv.visibility == View.VISIBLE) {
+            val backList = wv.copyBackForwardList()
+            val currentIndex = backList.currentIndex
+
+            // Find a valid previous history item that is NOT a redirect loop, same site, or blank
+            var targetIndex = -1
+            val currentUrl = backList.currentItem?.url.orEmpty()
+
+            for (i in currentIndex - 1 downTo 0) {
+                val item = backList.getItemAtIndex(i) ?: continue
+                val itemUrl = item.url.orEmpty()
+                if (itemUrl.isNotBlank() &&
+                    !itemUrl.equals("about:blank", ignoreCase = true) &&
+                    !isSameUrlOrRedirect(itemUrl, currentUrl)
+                ) {
+                    targetIndex = i
+                    break
+                }
+            }
+
+            if (targetIndex >= 0) {
+                // Navigate back to the genuine previous page
+                wv.goBackOrForward(targetIndex - currentIndex)
+            } else {
+                // Reached the root of this tab's history -> go to Home screen
+                showHomeScreen(keepTopUrl = false)
+            }
+        } else {
             showHomeScreen(keepTopUrl = false)
         }
+    }
+
+    private fun isSameUrlOrRedirect(url1: String, url2: String): Boolean {
+        if (url1.isBlank() || url2.isBlank()) return true
+        if (url1.equals(url2, ignoreCase = true)) return true
+
+        val clean1 = url1.substringBefore("?").substringBefore("#").trimEnd('/')
+        val clean2 = url2.substringBefore("?").substringBefore("#").trimEnd('/')
+        if (clean1.equals(clean2, ignoreCase = true)) return true
+
+        try {
+            val uri1 = android.net.Uri.parse(url1)
+            val uri2 = android.net.Uri.parse(url2)
+            val host1 = uri1.host?.removePrefix("www.")?.removePrefix("m.")?.removePrefix("web.") ?: ""
+            val host2 = uri2.host?.removePrefix("www.")?.removePrefix("m.")?.removePrefix("web.") ?: ""
+
+            if (host1.isNotBlank() && host1.equals(host2, ignoreCase = true)) {
+                val path1 = uri1.path?.trimEnd('/').orEmpty()
+                val path2 = uri2.path?.trimEnd('/').orEmpty()
+                if (path1 == path2 || path1.isEmpty() || path2.isEmpty()) {
+                    return true
+                }
+            }
+
+            val isTwitter1 = host1.contains("twitter.com") || host1.contains("x.com")
+            val isTwitter2 = host2.contains("twitter.com") || host2.contains("x.com")
+            if (isTwitter1 && isTwitter2) return true
+        } catch (_: Exception) {}
+
+        return false
     }
 
     fun updateTabCount(count: Int) {
@@ -1522,6 +1743,14 @@ class BrowserFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        heartbeatHandler.removeCallbacksAndMessages(null)
+        // Destroy all per-tab WebViews to prevent memory leaks
+        tabWebViews.values.forEach { wv ->
+            wv.stopLoading()
+            wv.destroy()
+        }
+        tabWebViews.clear()
+        tabIsHome.clear()
         _binding = null
     }
 }

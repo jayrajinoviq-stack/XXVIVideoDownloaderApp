@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "858239762723",
+    "project_id": "xxvi-video-downloader-e5dfe",
+    "storage_bucket": "xxvi-video-downloader-e5dfe.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:858239762723:android:287d7657157498b983cc96",
+        "android_client_info": {
+          "package_name": "com.inoviq.videodownloader.videosaver.storysaver"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBtjNvYDYDdsinSkP4V4XSmoIcKR6guNSY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

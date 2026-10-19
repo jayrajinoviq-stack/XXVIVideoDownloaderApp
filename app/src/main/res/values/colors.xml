@@ -28,4 +28,8 @@
     <color name="menu_text_gray">#6B778D</color>
     <color name="overlay_dim">#80000000</color>
     <color name="red">#80ED0707</color>
+
+    <color name="indicator_active">#FFA000</color>
+    <color name="colorPrimary">#FFA000</color>
+
 </resources>
