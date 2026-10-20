@@ -132,37 +132,36 @@ object DownloadHelper {
         }
 
         val platform = derivePlatformPrefix(cleanUrl)
+        val mediaTag = when {
+            isAudio -> "_audio"
+            isVideo -> "_video"
+            else -> "_img"
+        }
+
         var cleanCustom = customName?.trim() ?: ""
 
-        // Strip known extension if already present at end
-        val knownExts = listOf(".mp4", ".mp3", ".jpg", ".jpeg", ".png", ".webp", ".webm")
-        for (kExt in knownExts) {
-            if (cleanCustom.endsWith(kExt, ignoreCase = true)) {
-                cleanCustom = cleanCustom.substring(0, cleanCustom.length - kExt.length)
-                break
-            }
-        }
-        // Also strip known suffix like _mp4, _jpg, _mp3 if already present
-        val knownSuffixes = listOf("_mp4", "_mp3", "_jpg", "_jpeg", "_png", "_webp", "_webm")
-        for (kSuf in knownSuffixes) {
-            if (cleanCustom.endsWith(kSuf, ignoreCase = true)) {
-                cleanCustom = cleanCustom.substring(0, cleanCustom.length - kSuf.length)
-                break
-            }
+        // Strip known file extensions if present
+        cleanCustom = cleanCustom.replace(Regex("(?i)\\.(mp4|mp3|m4a|jpg|jpeg|png|webp|webm)$"), "")
+
+        // Strip known format or duplicate type suffixes
+        val formatSuffixRegex = Regex("(?i)_(mp4|mp3|m4a|jpg|jpeg|png|webp|webm|photo|image|img|video|audio)(_\\d+)?$")
+        while (formatSuffixRegex.containsMatchIn(cleanCustom)) {
+            cleanCustom = cleanCustom.replace(formatSuffixRegex, "")
         }
 
         val rawName = if (cleanCustom.isNotBlank() &&
-            !cleanCustom.equals("facebook_photo", true) &&
-            !cleanCustom.equals("facebook_video", true) &&
-            !cleanCustom.equals("instagram_photo", true) &&
-            !cleanCustom.equals("instagram_video", true) &&
-            !cleanCustom.equals("media", true)) {
+            !cleanCustom.equals("facebook", true) &&
+            !cleanCustom.equals("instagram", true) &&
+            !cleanCustom.equals("pinterest", true) &&
+            !cleanCustom.equals("tiktok", true) &&
+            !cleanCustom.equals("media", true) &&
+            !cleanCustom.equals("download", true)) {
             cleanCustom.replace(Regex("[^a-zA-Z0-9_-]"), "_")
         } else {
-            "${platform}_${if (isAudio) "audio" else if (isVideo) "video" else "photo"}_${System.currentTimeMillis() % 1000000}"
+            "${platform}_${System.currentTimeMillis() % 1000000}"
         }
 
-        val baseName = rawName.trimEnd('_')
+        val baseName = "${rawName.trimEnd('_')}$mediaTag"
 
         // Dedicated target directory: /storage/emulated/0/Download/XXVI_Downloader
         val targetDir = getDownloadDirectory(context)
@@ -178,7 +177,7 @@ object DownloadHelper {
         val fileName = destFile.name
 
         val mediaItem = MediaItem(
-            id = System.currentTimeMillis().toString(),
+            id = "${System.currentTimeMillis()}_${(100..999).random()}",
             title = fileName,
             url = cleanUrl,
             thumbnailUrl = if (!thumbUrl.isNullOrBlank() && thumbUrl.startsWith("http")) thumbUrl else cleanUrl,

@@ -8,6 +8,7 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import coil.load
 import coil.transform.RoundedCornersTransformation
@@ -17,18 +18,32 @@ import com.inoviq.videodownloader.videosaver.storysaver.model.MediaItem
 import java.io.File
 
 class DownloadedFilesAdapter(
-    private val files: MutableList<MediaItem>,
+    private var files: MutableList<MediaItem>,
     private val onDeleteSingle: (MediaItem) -> Unit,
     private val onPauseResume: ((MediaItem) -> Unit)? = null,
     private val onCancelDownload: ((MediaItem) -> Unit)? = null,
     private val onSelectionChanged: (selectedCount: Int, totalCount: Int) -> Unit,
-    private val onMultiSelectModeChanged: (Boolean) -> Unit
+    private val onMultiSelectModeChanged: (Boolean) -> Unit,
+    private val onItemClick: ((MediaItem) -> Unit)? = null
 ) : RecyclerView.Adapter<DownloadedFilesAdapter.FileViewHolder>() {
+
+    companion object {
+        const val PAYLOAD_PROGRESS = "PAYLOAD_PROGRESS"
+        const val PAYLOAD_PAUSE_RESUME = "PAYLOAD_PAUSE_RESUME"
+        const val PAYLOAD_SELECTION = "PAYLOAD_SELECTION"
+    }
 
     var isMultiSelectMode: Boolean = false
         private set
 
     val selectedItems = mutableSetOf<String>()
+
+    fun updateList(newList: List<MediaItem>) {
+        val diffCallback = MediaItemDiffCallback(this.files, newList)
+        val diffResult = DiffUtil.calculateDiff(diffCallback)
+        this.files = newList.toMutableList()
+        diffResult.dispatchUpdatesTo(this)
+    }
 
     fun setMultiSelectMode(enabled: Boolean) {
         if (isMultiSelectMode == enabled) return
@@ -46,7 +61,9 @@ class DownloadedFilesAdapter(
         if (select) {
             files.forEach { selectedItems.add(it.id.ifBlank { it.url }) }
         }
-        notifyDataSetChanged()
+        for (i in files.indices) {
+            notifyItemChanged(i, PAYLOAD_SELECTION)
+        }
         onSelectionChanged(selectedItems.size, files.size)
     }
 
@@ -57,7 +74,12 @@ class DownloadedFilesAdapter(
         } else {
             selectedItems.add(key)
         }
-        notifyDataSetChanged()
+        val idx = files.indexOfFirst { (it.id.isNotBlank() && it.id == key) || it.url == key }
+        if (idx != -1) {
+            notifyItemChanged(idx, PAYLOAD_SELECTION)
+        } else {
+            notifyDataSetChanged()
+        }
         onSelectionChanged(selectedItems.size, files.size)
     }
 
@@ -78,10 +100,79 @@ class DownloadedFilesAdapter(
         holder.bind(files[position])
     }
 
+    override fun onBindViewHolder(
+        holder: FileViewHolder,
+        position: Int,
+        payloads: MutableList<Any>
+    ) {
+        if (payloads.isEmpty()) {
+            super.onBindViewHolder(holder, position, payloads)
+        } else {
+            holder.bindPayload(files[position], payloads)
+        }
+    }
+
     override fun getItemCount(): Int = files.size
 
     inner class FileViewHolder(private val binding: ItemFileCardBinding) :
         RecyclerView.ViewHolder(binding.root) {
+
+        fun bindPayload(item: MediaItem, payloads: List<Any>) {
+            val key = item.id.ifBlank { item.url }
+            val isSelected = selectedItems.contains(key)
+            val isDownloading = !item.isDownloaded
+
+            var handled = false
+            for (payload in payloads) {
+                val payloadSet: Set<String> = when (payload) {
+                    is Set<*> -> payload.filterIsInstance<String>().toSet()
+                    is String -> setOf(payload)
+                    else -> emptySet()
+                }
+
+                if (payloadSet.contains(PAYLOAD_PROGRESS) || payloadSet.contains(PAYLOAD_PAUSE_RESUME)) {
+                    if (isDownloading) {
+                        binding.pbDownloadProgress.visibility = View.VISIBLE
+                        binding.pbDownloadProgress.progress = item.downloadProgress
+                        binding.tvFileSize.text = if (item.isPaused) {
+                            "${item.downloadProgress}% • Paused"
+                        } else {
+                            "${item.downloadProgress}% • Downloading..."
+                        }
+                        binding.llActions.visibility = View.GONE
+                        binding.llDownloadControls.visibility = if (isMultiSelectMode) View.GONE else View.VISIBLE
+                        binding.btnPauseResume.setImageResource(
+                            if (item.isPaused) R.drawable.ic_play_arrow else R.drawable.ic_pause
+                        )
+                    } else {
+                        binding.pbDownloadProgress.visibility = View.GONE
+                        binding.tvFileSize.text = "${item.sizeFormatted} • Saved"
+                        binding.llDownloadControls.visibility = View.GONE
+                        binding.llActions.visibility = if (isMultiSelectMode) View.GONE else View.VISIBLE
+                    }
+                    handled = true
+                }
+
+                if (payloadSet.contains(PAYLOAD_SELECTION)) {
+                    binding.ivCheckbox.setImageResource(
+                        if (isSelected) R.drawable.ic_custom_checkbox_checked
+                        else R.drawable.ic_custom_checkbox_unchecked
+                    )
+                    if (isSelected) {
+                        binding.root.strokeColor = ContextCompat.getColor(binding.root.context, R.color.primary_orange)
+                        binding.root.strokeWidth = (2 * binding.root.context.resources.displayMetrics.density).toInt()
+                    } else {
+                        binding.root.strokeColor = ContextCompat.getColor(binding.root.context, R.color.card_stroke)
+                        binding.root.strokeWidth = (1 * binding.root.context.resources.displayMetrics.density).toInt()
+                    }
+                    handled = true
+                }
+            }
+
+            if (!handled) {
+                bind(item)
+            }
+        }
 
         fun bind(item: MediaItem) {
             val context = binding.root.context
@@ -284,33 +375,7 @@ class DownloadedFilesAdapter(
                         onPauseResume?.invoke(item)
                         return@setOnClickListener
                     }
-                    try {
-                        val file = item.localPath?.let { File(it) }
-                        if (file != null && file.exists()) {
-                            val uri: Uri = FileProvider.getUriForFile(
-                                context,
-                                "${context.packageName}.fileprovider",
-                                file
-                            )
-                            val mimeType = when {
-                                item.isAudio -> "audio/*"
-                                item.isVideo -> "video/*"
-                                else -> "image/*"
-                            }
-                            val viewIntent = Intent(Intent.ACTION_VIEW).apply {
-                                setDataAndType(uri, mimeType)
-                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                            }
-                            context.startActivity(viewIntent)
-                        } else if (item.url.startsWith("http")) {
-                            val viewIntent = Intent(Intent.ACTION_VIEW, Uri.parse(item.url))
-                            context.startActivity(viewIntent)
-                        } else {
-                            Toast.makeText(context, "Opening ${item.title}", Toast.LENGTH_SHORT).show()
-                        }
-                    } catch (e: Exception) {
-                        Toast.makeText(context, "No app found to open this media", Toast.LENGTH_SHORT).show()
-                    }
+                    onItemClick?.invoke(item)
                 }
 
                 binding.root.setOnLongClickListener {
@@ -320,5 +385,50 @@ class DownloadedFilesAdapter(
                 }
             }
         }
+    }
+}
+
+class MediaItemDiffCallback(
+    private val oldList: List<MediaItem>,
+    private val newList: List<MediaItem>
+) : DiffUtil.Callback() {
+
+    override fun getOldListSize(): Int = oldList.size
+    override fun getNewListSize(): Int = newList.size
+
+    override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
+        val old = oldList[oldItemPosition]
+        val new = newList[newItemPosition]
+        return when {
+            old.id.isNotBlank() && new.id.isNotBlank() -> old.id == new.id
+            !old.localPath.isNullOrBlank() && !new.localPath.isNullOrBlank() -> old.localPath == new.localPath
+            old.url.isNotBlank() && new.url.isNotBlank() -> old.url == new.url && old.title == new.title
+            else -> old.title == new.title
+        }
+    }
+
+    override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
+        val old = oldList[oldItemPosition]
+        val new = newList[newItemPosition]
+        return old.downloadProgress == new.downloadProgress &&
+                old.isPaused == new.isPaused &&
+                old.isDownloaded == new.isDownloaded &&
+                old.sizeFormatted == new.sizeFormatted &&
+                old.sizeBytes == new.sizeBytes &&
+                old.title == new.title &&
+                old.localPath == new.localPath
+    }
+
+    override fun getChangePayload(oldItemPosition: Int, newItemPosition: Int): Any? {
+        val old = oldList[oldItemPosition]
+        val new = newList[newItemPosition]
+        val payloads = mutableSetOf<String>()
+        if (old.downloadProgress != new.downloadProgress || old.sizeFormatted != new.sizeFormatted || old.isDownloaded != new.isDownloaded) {
+            payloads.add(DownloadedFilesAdapter.PAYLOAD_PROGRESS)
+        }
+        if (old.isPaused != new.isPaused) {
+            payloads.add(DownloadedFilesAdapter.PAYLOAD_PAUSE_RESUME)
+        }
+        return if (payloads.isNotEmpty()) payloads else null
     }
 }

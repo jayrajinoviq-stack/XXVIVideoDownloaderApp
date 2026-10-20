@@ -51,19 +51,19 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="14dp"
-            android:layout_marginEnd="8dp"
+            android:layout_marginEnd="10dp"
             android:orientation="vertical"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toStartOf="@id/llActions"
+            app:layout_constraintEnd_toStartOf="@id/flEndActionContainer"
             app:layout_constraintStart_toEndOf="@id/flThumbnail"
             app:layout_constraintTop_toTopOf="parent">
 
             <TextView
                 android:id="@+id/tvFileName"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:ellipsize="middle"
-                android:maxLines="1"
+                android:singleLine="true"
                 android:textColor="@color/text_dark"
                 android:textSize="14sp"
                 android:textStyle="bold"
@@ -101,92 +101,98 @@
                 android:visibility="gone" />
         </LinearLayout>
 
-        <!-- Action Buttons (Share, Delete) -->
-        <LinearLayout
-            android:id="@+id/llActions"
+        <!-- Right-side Action / Checkbox Container -->
+        <FrameLayout
+            android:id="@+id/flEndActionContainer"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
+            android:minWidth="30dp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent">
 
+            <!-- Action Buttons (Share, Delete) -->
+            <LinearLayout
+                android:id="@+id/llActions"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical|end"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:id="@+id/btnShare"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:clickable="true"
+                    android:contentDescription="Share"
+                    android:focusable="true"
+                    android:padding="6dp"
+                    android:src="@drawable/ic_menu_share" />
+
+                <ImageView
+                    android:id="@+id/btnDelete"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:layout_marginStart="4dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:contentDescription="Delete"
+                    android:padding="4dp"
+                    android:src="@drawable/ic_delete_bin_gray"
+                    app:tint="@color/red" />
+
+            </LinearLayout>
+
+            <!-- Active Download Controls (Pause / Resume / Cancel) -->
+            <LinearLayout
+                android:id="@+id/llDownloadControls"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical|end"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:visibility="gone">
+
+                <ImageView
+                    android:id="@+id/btnPauseResume"
+                    android:layout_width="34dp"
+                    android:layout_height="34dp"
+                    android:background="@drawable/bg_circle_orange_fab"
+                    android:clickable="true"
+                    android:contentDescription="Pause or Resume"
+                    android:focusable="true"
+                    android:padding="8dp"
+                    android:src="@drawable/ic_pause"
+                    app:tint="@color/white" />
+
+                <ImageView
+                    android:id="@+id/btnCancelDownload"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:layout_marginStart="8dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:clickable="true"
+                    android:contentDescription="Cancel Download"
+                    android:focusable="true"
+                    android:padding="6dp"
+                    android:src="@drawable/ic_close_cross"
+                    app:tint="@color/text_gray" />
+            </LinearLayout>
+
+            <!-- Selection Checkbox -->
             <ImageView
-                android:id="@+id/btnShare"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:clickable="true"
-                android:contentDescription="Share"
-                android:focusable="true"
-                android:padding="6dp"
-                android:src="@drawable/ic_menu_share" />
-
-            <ImageView
-                android:id="@+id/btnDelete"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:layout_marginStart="4dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:clickable="true"
-                android:focusable="true"
-                android:contentDescription="Delete"
-                android:padding="4dp"
-                android:src="@drawable/ic_delete_bin_gray"
-                app:tint="@color/red" />
-
-        </LinearLayout>
-
-        <!-- Active Download Controls (Pause / Resume / Cancel) -->
-        <LinearLayout
-            android:id="@+id/llDownloadControls"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:visibility="gone"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent">
-
-            <ImageView
-                android:id="@+id/btnPauseResume"
-                android:layout_width="34dp"
-                android:layout_height="34dp"
-                android:background="@drawable/bg_circle_orange_fab"
-                android:clickable="true"
-                android:contentDescription="Pause or Resume"
-                android:focusable="true"
-                android:padding="8dp"
-                android:src="@drawable/ic_pause"
-                app:tint="@color/white" />
-
-            <ImageView
-                android:id="@+id/btnCancelDownload"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:layout_marginStart="8dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:clickable="true"
-                android:contentDescription="Cancel Download"
-                android:focusable="true"
-                android:padding="6dp"
-                android:src="@drawable/ic_close_cross"
-                app:tint="@color/text_gray" />
-        </LinearLayout>
-
-        <ImageView
-            android:id="@+id/ivCheckbox"
-            android:layout_width="26dp"
-            android:layout_height="26dp"
-            android:layout_marginEnd="4dp"
-            android:contentDescription="Select"
-            android:src="@drawable/ic_custom_checkbox_unchecked"
-            android:visibility="gone"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+                android:id="@+id/ivCheckbox"
+                android:layout_width="26dp"
+                android:layout_height="26dp"
+                android:layout_gravity="center_vertical|end"
+                android:layout_marginEnd="4dp"
+                android:contentDescription="Select"
+                android:src="@drawable/ic_custom_checkbox_unchecked"
+                android:visibility="gone" />
+        </FrameLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

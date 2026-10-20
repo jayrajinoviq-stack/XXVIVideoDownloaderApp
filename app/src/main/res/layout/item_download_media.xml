@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:paddingHorizontal="16dp"
-    android:paddingVertical="5dp">
+    android:paddingVertical="8dp">
 
     <!-- Checkbox -->
     <ImageView
@@ -48,12 +48,12 @@
 
         <TextView
             android:id="@+id/tvTitle"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:ellipsize="middle"
-            android:maxLines="1"
+            android:singleLine="true"
             android:textColor="@color/black"
-            android:textSize="17sp"
+            android:textSize="15sp"
             android:textStyle="bold"
             tools:text="facebook_170085002" />
 
@@ -63,11 +63,11 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:textColor="#7D8597"
-            android:textSize="14sp"
+            android:textSize="13sp"
             tools:text="15.67kB" />
     </LinearLayout>
 
-    <!-- Rename Button -->
+    <!-- Rename Button: Vertically centered with thumbnail -->
     <TextView
         android:id="@+id/btnRename"
         android:layout_width="wrap_content"
@@ -84,6 +84,7 @@
         android:textSize="13sp"
         android:textStyle="normal"
         app:layout_constraintBottom_toBottomOf="@id/ivThumbnail"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@id/ivThumbnail" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

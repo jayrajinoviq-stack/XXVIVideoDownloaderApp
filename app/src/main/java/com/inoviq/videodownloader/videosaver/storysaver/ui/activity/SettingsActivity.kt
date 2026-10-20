@@ -21,6 +21,7 @@ import androidx.core.content.FileProvider
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.inoviq.videodownloader.videosaver.storysaver.databinding.ActivitySettingsBinding
+import com.inoviq.videodownloader.videosaver.storysaver.databinding.DialogClearHistoryBinding
 import com.inoviq.videodownloader.videosaver.storysaver.databinding.DialogSearchEngineBinding
 import com.inoviq.videodownloader.videosaver.storysaver.databinding.ItemSearchEngineRowBinding
 import com.inoviq.videodownloader.videosaver.storysaver.utils.BrowserHistoryManager
@@ -32,7 +33,6 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var binding: ActivitySettingsBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.light(
                 Color.TRANSPARENT,
@@ -43,6 +43,7 @@ class SettingsActivity : AppCompatActivity() {
                 Color.TRANSPARENT
             )
         )
+        super.onCreate(savedInstanceState)
         binding = ActivitySettingsBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
@@ -53,23 +54,22 @@ class SettingsActivity : AppCompatActivity() {
 
     private fun setupWindowInsets() {
         val density = resources.displayMetrics.density
+        binding.settingsTopBar.setPadding(
+            (16 * density).toInt(),
+            (12 * density).toInt(),
+            (16 * density).toInt(),
+            (12 * density).toInt()
+        )
+        binding.nsvSettingsContent.setPadding(0, 0, 0, (20 * density).toInt())
 
-        ViewCompat.setOnApplyWindowInsetsListener(binding.settingsTopBar) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(
-                (16 * density).toInt(),
-                systemBars.top + (10 * density).toInt(),
-                (16 * density).toInt(),
-                (12 * density).toInt()
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { v, insets ->
+            val systemBars = insets.getInsets(
+                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
             )
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
-
-        ViewCompat.setOnApplyWindowInsetsListener(binding.nsvSettingsContent) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(0, 0, 0, systemBars.bottom + (20 * density).toInt())
-            insets
-        }
+        ViewCompat.requestApplyInsets(binding.root)
     }
 
     private fun setupListeners() {
@@ -90,11 +90,16 @@ class SettingsActivity : AppCompatActivity() {
         }
 
         binding.cardClearCache.setOnClickListener {
-            try {
-                WebView(this).clearCache(true)
-                CookieManager.getInstance().removeAllCookies(null)
-            } catch (_: Exception) {}
-            Toast.makeText(this, "Browser cache cleared successfully", Toast.LENGTH_SHORT).show()
+            showConfirmationDialog(
+                title = "Clear Cache",
+                message = "Would you like to clear browser cache and cookies?"
+            ) {
+                try {
+                    WebView(this).clearCache(true)
+                    CookieManager.getInstance().removeAllCookies(null)
+                } catch (_: Exception) {}
+                Toast.makeText(this, "Browser cache cleared successfully", Toast.LENGTH_SHORT).show()
+            }
         }
 
         binding.switchRecentlyUsed.isChecked = BrowserHistoryManager.isRecentlyUsedEnabled(this)
@@ -103,40 +108,70 @@ class SettingsActivity : AppCompatActivity() {
         }
 
         binding.cardClearHistory.setOnClickListener {
-            BrowserHistoryManager.clearAll(this)
-            Toast.makeText(this, "Browsing history cleared", Toast.LENGTH_SHORT).show()
+            showConfirmationDialog(
+                title = "Clear History",
+                message = "Would you like to clear all browsing history?"
+            ) {
+                BrowserHistoryManager.clearAll(this)
+                Toast.makeText(this, "Browsing history cleared", Toast.LENGTH_SHORT).show()
+            }
         }
 
         binding.cardHowToWork.setOnClickListener {
             startActivity(Intent(this, HowToWorkActivity::class.java))
         }
 
-        binding.cardFeedback.setOnClickListener {
-            val intent = Intent(Intent.ACTION_SENDTO).apply {
-                data = Uri.parse("mailto:")
-                putExtra(Intent.EXTRA_EMAIL, arrayOf("support@inoviq.com"))
-                putExtra(Intent.EXTRA_SUBJECT, "XXVI Video Downloader Feedback")
-            }
-            try {
-                startActivity(Intent.createChooser(intent, "Send Feedback"))
-            } catch (_: Exception) {
-                Toast.makeText(this, "No email client installed", Toast.LENGTH_SHORT).show()
-            }
-        }
-
         binding.cardPrivacyPolicy.setOnClickListener {
-            showCustomInfoDialog(
-                "Privacy Policy",
-                "XXVI Video Downloader respects your privacy. We do not collect or sell your personal browsing data. All media downloads are saved locally on your device storage."
-            )
+            try {
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://sites.google.com/view/xxvi-video-downloader/privacy-policy"))
+                startActivity(intent)
+            } catch (_: Exception) {
+                Toast.makeText(this, "No browser found to open link", Toast.LENGTH_SHORT).show()
+            }
         }
 
         binding.cardTerms.setOnClickListener {
-            showCustomInfoDialog(
-                "Terms & Conditions",
-                "By using this application, you agree to respect copyright laws and intellectual property rights of media creators. This tool is designed for personal content archival purposes."
-            )
+            try {
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://sites.google.com/view/xxvi-video-downloader/terms-and-conditions"))
+                startActivity(intent)
+            } catch (_: Exception) {
+                Toast.makeText(this, "No browser found to open link", Toast.LENGTH_SHORT).show()
+            }
         }
+    }
+
+    private fun showConfirmationDialog(
+        title: String,
+        message: String,
+        positiveText: String = "YES",
+        negativeText: String = "NO",
+        onConfirm: () -> Unit
+    ) {
+        val dialog = Dialog(this)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+        val dialogBinding = DialogClearHistoryBinding.inflate(layoutInflater)
+        dialog.setContentView(dialogBinding.root)
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        dialog.window?.setLayout(
+            (320 * resources.displayMetrics.density).toInt(),
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+
+        dialogBinding.tvClearHistoryTitle.text = title
+        dialogBinding.tvClearHistoryMsg.text = message
+        dialogBinding.btnCancelClearHistory.text = negativeText
+        dialogBinding.btnConfirmClearHistory.text = positiveText
+
+        dialogBinding.btnCancelClearHistory.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialogBinding.btnConfirmClearHistory.setOnClickListener {
+            dialog.dismiss()
+            onConfirm()
+        }
+
+        dialog.show()
     }
 
     private fun showCustomInfoDialog(title: String, message: String) {

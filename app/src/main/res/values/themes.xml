@@ -10,6 +10,27 @@
 
     <style name="Theme.XXVIVideoDownloader" parent="Base.Theme.XXVIVideoDownloader" />
 
+    <style name="Theme.XXVIVideoDownloader.SlideFromLeft" parent="Theme.XXVIVideoDownloader">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowAnimationStyle">@style/Animation.SlideFromLeft</item>
+    </style>
+
+    <style name="Animation.SlideFromLeft" parent="@android:style/Animation.Activity">
+        <item name="android:activityOpenEnterAnimation">@anim/slide_in_left</item>
+        <item name="android:activityOpenExitAnimation">@anim/no_anim</item>
+        <item name="android:activityCloseEnterAnimation">@anim/no_anim</item>
+        <item name="android:activityCloseExitAnimation">@anim/slide_out_left</item>
+        <item name="android:taskOpenEnterAnimation">@anim/slide_in_left</item>
+        <item name="android:taskOpenExitAnimation">@anim/no_anim</item>
+        <item name="android:taskCloseEnterAnimation">@anim/no_anim</item>
+        <item name="android:taskCloseExitAnimation">@anim/slide_out_left</item>
+        <item name="android:taskToFrontEnterAnimation">@anim/slide_in_left</item>
+        <item name="android:taskToFrontExitAnimation">@anim/no_anim</item>
+        <item name="android:taskToBackEnterAnimation">@anim/no_anim</item>
+        <item name="android:taskToBackExitAnimation">@anim/slide_out_left</item>
+    </style>
+
     <style name="Theme.XXVIVideoDownloader.Splash" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@color/bg_color</item>
         <item name="windowSplashScreenAnimatedIcon">@drawable/app_logo</item>

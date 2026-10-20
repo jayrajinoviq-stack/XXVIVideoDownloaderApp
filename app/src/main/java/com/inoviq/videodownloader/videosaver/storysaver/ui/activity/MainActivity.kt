@@ -1,8 +1,18 @@
 package com.inoviq.videodownloader.videosaver.storysaver.ui.activity
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
+import android.animation.ObjectAnimator
+import android.app.Activity
 import android.content.Intent
 import android.graphics.Color
+import android.os.Build
 import android.os.Bundle
+import android.view.MotionEvent
+import android.view.VelocityTracker
+import android.view.View
+import android.view.ViewConfiguration
+import android.view.animation.DecelerateInterpolator
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.SystemBarStyle
@@ -22,6 +32,9 @@ import com.inoviq.videodownloader.videosaver.storysaver.ui.fragment.BrowserFragm
 import com.inoviq.videodownloader.videosaver.storysaver.ui.fragment.FilesFragment
 import com.inoviq.videodownloader.videosaver.storysaver.utils.BookmarkManager
 import com.inoviq.videodownloader.videosaver.storysaver.utils.BrowserHistoryManager
+import com.inoviq.videodownloader.videosaver.storysaver.utils.LauncherHelper
+import com.inoviq.videodownloader.videosaver.storysaver.utils.TabStore
+import kotlin.math.abs
 
 class MainActivity : AppCompatActivity() {
 
@@ -57,7 +70,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.light(
                 Color.TRANSPARENT,
@@ -68,21 +80,53 @@ class MainActivity : AppCompatActivity() {
                 Color.TRANSPARENT
             )
         )
+        super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        window.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(Color.TRANSPARENT))
+
+        // Smooth slide-in transition from left when MainActivity opens
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            overrideActivityTransition(
+                Activity.OVERRIDE_TRANSITION_OPEN,
+                R.anim.slide_in_left,
+                R.anim.no_anim
+            )
+            overrideActivityTransition(
+                Activity.OVERRIDE_TRANSITION_CLOSE,
+                R.anim.no_anim,
+                R.anim.slide_out_left
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            overridePendingTransition(
+                R.anim.slide_in_left,
+                R.anim.no_anim
+            )
+        }
 
         val density = resources.displayMetrics.density
 
-        // Fit system window insets for browser screen
+        // Fit system window insets for fragmentContainer dynamically based on bottom nav and status bars
         ViewCompat.setOnApplyWindowInsetsListener(binding.fragmentContainer) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            val systemBars = insets.getInsets(
+                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
+            )
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
 
-        // Fit system window insets for left side drawer (edge-to-edge background, inset content)
-        ViewCompat.setOnApplyWindowInsetsListener(binding.navDrawerTabs) { _, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+        // Fit system window insets for root DrawerLayout and dispatch down to fragmentContainer and drawer tabs
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
+            val systemBars = insets.getInsets(
+                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
+            )
+            binding.fragmentContainer.setPadding(
+                systemBars.left,
+                systemBars.top,
+                systemBars.right,
+                systemBars.bottom
+            )
             binding.llDrawerTabsHeader.setPadding(
                 (20 * density).toInt(),
                 systemBars.top + (10 * density).toInt(),
@@ -95,7 +139,14 @@ class MainActivity : AppCompatActivity() {
                 (6 * density).toInt(),
                 systemBars.bottom + (20 * density).toInt()
             )
+            ViewCompat.dispatchApplyWindowInsets(binding.fragmentContainer, insets)
             insets
+        }
+
+        ViewCompat.requestApplyInsets(binding.root)
+        ViewCompat.requestApplyInsets(binding.fragmentContainer)
+        binding.root.post {
+            ViewCompat.requestApplyInsets(binding.fragmentContainer)
         }
 
         initTabsAndHistory()
@@ -103,28 +154,33 @@ class MainActivity : AppCompatActivity() {
         setupTabsDrawer()
         setupBackNavigation()
 
-        if (intent.getBooleanExtra("SHOW_DOWNLOADS", false)) {
-            binding.root.post { showDownloads() }
-        }
+        handleIntent(intent)
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        handleIntent(intent)
+    }
+
+    private fun handleIntent(intent: Intent?) {
+        if (intent == null) return
         if (intent.getBooleanExtra("SHOW_DOWNLOADS", false)) {
             binding.root.post { showDownloads() }
+        }
+        if (intent.getBooleanExtra("FOCUS_SEARCH", false)) {
+            binding.root.post {
+                if (::browserFragment.isInitialized) {
+                    browserFragment.focusSearchInput()
+                }
+            }
         }
     }
 
     private fun initTabsAndHistory() {
-        openTabs.add(
-            BrowserTab(
-                id = "1",
-                title = "Homepage",
-                url = "",
-                isCurrent = true
-            )
-        )
+        val savedTabs = TabStore.getSavedTabs(this)
+        openTabs.clear()
+        openTabs.addAll(savedTabs)
 
         historyList.addAll(
             listOf(
@@ -148,6 +204,11 @@ class MainActivity : AppCompatActivity() {
         val existingBrowser = supportFragmentManager.findFragmentByTag("BROWSER") as? BrowserFragment
         browserFragment = existingBrowser ?: BrowserFragment()
 
+        val firstTab = openTabs.firstOrNull { it.isCurrent } ?: openTabs.firstOrNull()
+        if (firstTab != null) {
+            browserFragment.setInitialTab(firstTab.id, firstTab.url)
+        }
+
         if (existingBrowser == null) {
             supportFragmentManager.beginTransaction()
                 .add(R.id.fragmentContainer, browserFragment, "BROWSER")
@@ -165,17 +226,18 @@ class MainActivity : AppCompatActivity() {
                 current.title = title
                 current.url = url
                 tabAdapter.notifyDataSetChanged()
+                TabStore.saveTabs(this, openTabs)
             }
             if (url.isNotBlank() && historyList.none { it.url == url }) {
                 historyList.add(0, HistoryItem(title, url))
             }
         }
 
-        // Initialize the first tab's WebView after the fragment view is ready
+        // Ensure active tab's WebView session is activated after fragment view is ready
         binding.root.post {
-            val firstTab = openTabs.firstOrNull { it.isCurrent } ?: openTabs.firstOrNull()
-            if (firstTab != null) {
-                browserFragment.switchToTab(firstTab.id, firstTab.url)
+            val currentTab = openTabs.firstOrNull { it.isCurrent } ?: openTabs.firstOrNull()
+            if (currentTab != null) {
+                browserFragment.switchToTab(currentTab.id, currentTab.url)
             }
         }
     }
@@ -191,6 +253,7 @@ class MainActivity : AppCompatActivity() {
                 // Switch to the tapped tab instantly — no reload
                 browserFragment.switchToTab(tab.id, tab.url)
                 closeTabsDrawer()
+                TabStore.saveTabs(this, openTabs)
             },
             onCloseClick = { tab, position ->
                 closeTab(tab, position)
@@ -248,6 +311,7 @@ class MainActivity : AppCompatActivity() {
         // Switch to the new tab's isolated WebView session
         browserFragment.switchToTab(newTab.id, initialUrl ?: "")
         closeTabsDrawer()
+        TabStore.saveTabs(this, openTabs)
     }
 
     private fun closeTab(tab: BrowserTab, position: Int) {
@@ -264,7 +328,18 @@ class MainActivity : AppCompatActivity() {
             }
             tabAdapter.notifyDataSetChanged()
             updateTabCountState()
+            TabStore.saveTabs(this, openTabs)
         }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        TabStore.saveTabs(this, openTabs)
+    }
+
+    override fun onStop() {
+        super.onStop()
+        TabStore.saveTabs(this, openTabs)
     }
 
     private fun updateTabCountState() {
@@ -305,6 +380,91 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private var downX = 0f
+    private var downY = 0f
+    private var isSliding = false
+    private var velocityTracker: VelocityTracker? = null
+    private val touchSlop by lazy { ViewConfiguration.get(this).scaledTouchSlop }
+    private val screenWidth by lazy { resources.displayMetrics.widthPixels }
+    private var isClosing = false
+
+    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        if (binding.drawerLayout.isDrawerOpen(GravityCompat.START)) {
+            return super.dispatchTouchEvent(ev)
+        }
+        if (isClosing) return true
+        when (ev.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                downX = ev.rawX
+                downY = ev.rawY
+                isSliding = false
+                velocityTracker?.recycle()
+                velocityTracker = VelocityTracker.obtain().apply { addMovement(ev) }
+            }
+            MotionEvent.ACTION_MOVE -> {
+                velocityTracker?.addMovement(ev)
+                val dx = ev.rawX - downX
+                val dy = ev.rawY - downY
+
+                // Detect right-to-left slide gesture (dx < 0) starting from the right side of the screen
+                if (!isSliding && dx < -touchSlop && abs(dx) > abs(dy) * 1.5f && downX > screenWidth * 0.7f) {
+                    isSliding = true
+                    val cancel = MotionEvent.obtain(ev).apply { action = MotionEvent.ACTION_CANCEL }
+                    super.dispatchTouchEvent(cancel)
+                    cancel.recycle()
+                }
+
+                if (isSliding) {
+                    binding.root.translationX = dx.coerceAtMost(0f)
+                    return true
+                }
+            }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                velocityTracker?.addMovement(ev)
+                velocityTracker?.computeCurrentVelocity(1000)
+                val vx = velocityTracker?.xVelocity ?: 0f
+                velocityTracker?.recycle()
+                velocityTracker = null
+
+                if (isSliding) {
+                    isSliding = false
+                    val curX = binding.root.translationX
+                    if (abs(curX) > screenWidth * 0.20f || vx < -800f) {
+                        animateAndClose(curX)
+                    } else {
+                        animateBack()
+                    }
+                    return true
+                }
+            }
+        }
+        return super.dispatchTouchEvent(ev)
+    }
+
+    private fun animateAndClose(fromX: Float) {
+        if (isClosing) return
+        isClosing = true
+        ObjectAnimator.ofFloat(binding.root, View.TRANSLATION_X, fromX, -screenWidth.toFloat()).apply {
+            duration = 200
+            interpolator = DecelerateInterpolator()
+            addListener(object : AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: Animator) {
+                    finish()
+                    overridePendingTransition(0, 0)
+                }
+            })
+            start()
+        }
+    }
+
+    private fun animateBack() {
+        ObjectAnimator.ofFloat(binding.root, View.TRANSLATION_X, binding.root.translationX, 0f).apply {
+            duration = 150
+            interpolator = DecelerateInterpolator()
+            start()
+        }
+    }
+
     private fun setupBackNavigation() {
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
@@ -318,8 +478,13 @@ class MainActivity : AppCompatActivity() {
                     return
                 }
 
-                isEnabled = false
-                onBackPressedDispatcher.onBackPressed()
+                // If user is at root of MainActivity, smoothly slide close to reveal Launcher Home
+                if (LauncherHelper.isDefaultLauncher(this@MainActivity)) {
+                    animateAndClose(binding.root.translationX)
+                } else {
+                    isEnabled = false
+                    onBackPressedDispatcher.onBackPressed()
+                }
             }
         })
     }

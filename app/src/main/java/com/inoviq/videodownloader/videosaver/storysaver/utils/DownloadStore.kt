@@ -17,7 +17,9 @@ object DownloadStore {
         if (isMockItem(item)) return
 
         val list = getDownloadedItems(context).toMutableList()
-        val existingIndex = list.indexOfFirst { it.id == item.id || it.title == item.title || it.url == item.url }
+        val existingIndex = list.indexOfFirst {
+            it.id == item.id || (it.localPath != null && item.localPath != null && it.localPath == item.localPath)
+        }
         if (existingIndex != -1) {
             list[existingIndex] = item
         } else {
@@ -28,7 +30,9 @@ object DownloadStore {
 
     fun removeDownloadedItem(context: Context, item: MediaItem) {
         val list = getDownloadedItems(context).toMutableList()
-        list.removeAll { it.id == item.id || it.title == item.title || it.url == item.url }
+        list.removeAll {
+            it.id == item.id || (it.localPath != null && item.localPath != null && it.localPath == item.localPath)
+        }
         saveList(context, list)
 
         item.localPath?.let { path ->
@@ -110,7 +114,14 @@ object DownloadStore {
 
                     val localPath = if (obj.has("localPath") && !obj.isNull("localPath")) obj.getString("localPath") else null
                     val sizeBytes = obj.optLong("sizeBytes", 0L)
-                    val sizeStr = obj.optString("sizeFormatted", if (obj.optBoolean("isVideo", false)) "3.42 MB" else "15.67kB")
+                    val isAudio = obj.optBoolean("isAudio", false) ||
+                            title.endsWith(".mp3", ignoreCase = true) ||
+                            title.endsWith(".m4a", ignoreCase = true) ||
+                            title.contains("audio", ignoreCase = true) ||
+                            (localPath != null && (localPath.endsWith(".mp3", ignoreCase = true) || localPath.endsWith(".m4a", ignoreCase = true)))
+                    val isVideo = !isAudio && obj.optBoolean("isVideo", false)
+                    val defaultSizeStr = if (isAudio) "165 kB" else if (isVideo) "3.42 MB" else "15.67kB"
+                    val sizeStr = obj.optString("sizeFormatted", defaultSizeStr)
 
                     items.add(
                         MediaItem(
@@ -120,7 +131,8 @@ object DownloadStore {
                             thumbnailUrl = if (obj.has("thumbnailUrl") && !obj.isNull("thumbnailUrl")) obj.getString("thumbnailUrl") else null,
                             sizeBytes = sizeBytes,
                             sizeFormatted = sizeStr,
-                            isVideo = obj.optBoolean("isVideo", false),
+                            isVideo = isVideo,
+                            isAudio = isAudio,
                             isDownloaded = true,
                             localPath = localPath
                         )
@@ -147,6 +159,7 @@ object DownloadStore {
                 put("sizeBytes", item.sizeBytes)
                 put("sizeFormatted", item.sizeFormatted)
                 put("isVideo", item.isVideo)
+                put("isAudio", item.isAudio)
                 put("localPath", item.localPath ?: "")
             }
             jsonArray.put(obj)

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/widget_smart_top_desc"
+    android:initialLayout="@layout/widget_smart_top"
+    android:minWidth="180dp"
+    android:minHeight="40dp"
+    android:minResizeWidth="140dp"
+    android:minResizeHeight="40dp"
+    android:previewImage="@drawable/widget_smart_top_preview"
+    android:resizeMode="none"
+    android:targetCellWidth="5"
+    android:targetCellHeight="1"
+    android:widgetCategory="home_screen" />

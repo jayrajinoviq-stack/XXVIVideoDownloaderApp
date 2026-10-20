@@ -27,11 +27,11 @@ object HomeScreenShortcutManager {
         val list = mutableListOf<HomeScreenShortcut>()
 
         if (jsonStr.isNullOrBlank()) {
-            // Seed the 5 default items on initial download/open
+            // Seed the 5 default items on initial download/open - WhatsApp is first!
+            list.add(HomeScreenShortcut(id = "whatsapp", title = "WhatsApp", url = "whatsapp://status", iconType = "whatsapp"))
             list.add(HomeScreenShortcut(id = "facebook", title = "Facebook", url = "https://m.facebook.com/", iconType = "facebook"))
             list.add(HomeScreenShortcut(id = "instagram", title = "Instagram", url = "https://www.instagram.com/", iconType = "instagram"))
             list.add(HomeScreenShortcut(id = "tiktok", title = "TikTok", url = "https://www.tiktok.com/", iconType = "tiktok"))
-            list.add(HomeScreenShortcut(id = "whatsapp", title = "WhatsApp", url = "https://web.whatsapp.com/", iconType = "whatsapp"))
             list.add(HomeScreenShortcut(id = "twitter", title = "Twitter", url = "https://twitter.com/", iconType = "twitter"))
             saveShortcuts(context, list)
             return list
@@ -51,6 +51,22 @@ object HomeScreenShortcutManager {
             }
         } catch (e: Exception) {
             e.printStackTrace()
+        }
+
+        // WhatsApp must always be first and cannot be deleted
+        var modified = false
+        val waIndex = list.indexOfFirst { isWhatsApp(it) }
+        if (waIndex > 0) {
+            val wa = list.removeAt(waIndex)
+            list.add(0, wa)
+            modified = true
+        } else if (waIndex == -1) {
+            list.add(0, HomeScreenShortcut(id = "whatsapp", title = "WhatsApp", url = "whatsapp://status", iconType = "whatsapp"))
+            modified = true
+        }
+
+        if (modified) {
+            saveShortcuts(context, list)
         }
 
         return list
@@ -75,24 +91,32 @@ object HomeScreenShortcutManager {
     }
 
     /**
-     * Adds a new website shortcut. Returns false if MAX_SHORTCUTS (8) is already reached.
+     * Adds a new website or search shortcut. Returns false if MAX_SHORTCUTS (8) is already reached.
+     * If user enters a web link (contains domain/dot and no spaces, or starts with http/https), opens direct.
+     * If user enters plain text (search query), creates a search shortcut that searches and shows results.
      */
     fun addShortcut(context: Context, title: String, url: String): Boolean {
         val list = getShortcuts(context)
         if (list.size >= MAX_SHORTCUTS) return false
 
-        val trimmedUrl = url.trim()
+        val trimmed = url.trim()
+        val isLink = trimmed.startsWith("http://", ignoreCase = true) ||
+                trimmed.startsWith("https://", ignoreCase = true) ||
+                (trimmed.contains(".") && !trimmed.contains(" ") && trimmed.length > 3)
+
         val finalUrl = when {
-            trimmedUrl.startsWith("http://") || trimmedUrl.startsWith("https://") -> trimmedUrl
-            else -> "https://$trimmedUrl"
-        }
-        val targetTitle = if (title.isBlank()) {
-            deriveTitle(finalUrl)
-        } else {
-            title.trim()
+            trimmed.startsWith("http://", ignoreCase = true) || trimmed.startsWith("https://", ignoreCase = true) -> trimmed
+            isLink -> "https://$trimmed"
+            else -> SearchEngineManager.buildSearchUrl(context, trimmed)
         }
 
-        val iconType = detectIconType(finalUrl, targetTitle)
+        val targetTitle = when {
+            title.isNotBlank() -> title.trim()
+            isLink -> deriveTitle(finalUrl)
+            else -> trimmed
+        }
+
+        val iconType = if (isLink) detectIconType(finalUrl, targetTitle) else "search"
         val newShortcut = HomeScreenShortcut(
             id = System.currentTimeMillis().toString(),
             title = targetTitle,
@@ -106,10 +130,25 @@ object HomeScreenShortcutManager {
     }
 
     /**
-     * Removes a shortcut by its ID. Can remove any shortcut from the list.
+     * Checks if a shortcut is WhatsApp.
+     */
+    fun isWhatsApp(shortcut: HomeScreenShortcut): Boolean {
+        return shortcut.id == "whatsapp" ||
+                shortcut.iconType.equals("whatsapp", ignoreCase = true) ||
+                shortcut.title.equals("whatsapp", ignoreCase = true) ||
+                shortcut.url.contains("whatsapp", ignoreCase = true)
+    }
+
+    /**
+     * Removes a shortcut by its ID. WhatsApp is protected and can NEVER be removed.
      */
     fun removeShortcut(context: Context, id: String): Boolean {
+        if (id == "whatsapp") return false
         val list = getShortcuts(context)
+        val target = list.firstOrNull { it.id == id }
+        if (target != null && isWhatsApp(target)) {
+            return false
+        }
         val removed = list.removeAll { it.id == id }
         if (removed) {
             saveShortcuts(context, list)

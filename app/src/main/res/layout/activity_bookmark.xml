@@ -21,14 +21,14 @@
         <!-- Back Button -->
         <ImageView
             android:id="@+id/btnBookmarkBack"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:clickable="true"
             android:contentDescription="Back"
             android:focusable="true"
             android:scaleType="fitCenter"
-            android:src="@drawable/ic_settings_back" />
+            android:src="@drawable/ic_btn_back" />
 
         <!-- Title -->
         <TextView

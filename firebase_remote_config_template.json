@@ -1,0 +1,94 @@
+{
+  "parameters": {
+    "isMainAdIds": {
+      "defaultValue": {
+        "value": "true"
+      },
+      "description": "If true, loads primary MainAdIds first."
+    },
+    "isSubAdIds": {
+      "defaultValue": {
+        "value": "true"
+      },
+      "description": "If true, loads fallback SubAdIds if Main fails or if isMainAdIds is false."
+    },
+    "isShowAdsURL": {
+      "defaultValue": {
+        "value": "false"
+      },
+      "description": "Controls whether custom web fallback ads are active."
+    },
+    "MainAdIds": {
+      "defaultValue": {
+        "value": "{\"BannerAd\":\"\",\"AppOpenAd\":\"\",\"InterstialAd\":\"\",\"NativeAd\":\"\",\"RewardAd\":\"\",\"RewardInterAd\":\"\"}"
+      },
+      "description": "JSON bundle of production primary AdMob / Ad Manager Unit IDs."
+    },
+    "SubAdIds": {
+      "defaultValue": {
+        "value": "{\"BannerAd\":\"\",\"AppOpenAd\":\"\",\"InterstialAd\":\"\",\"NativeAd\":\"\",\"RewardAd\":\"\",\"RewardInterAd\":\"\"}"
+      },
+      "description": "JSON bundle of secondary fallback AdMob / Ad Manager Unit IDs."
+    },
+    "AdsURL": {
+      "defaultValue": {
+        "value": "https://5128.fflivegame.com/"
+      },
+      "description": "Default target landing URL for web promotional ads."
+    },
+    "AdsImgClickURl": {
+      "defaultValue": {
+        "value": "https://5128.fflivegame.com/"
+      },
+      "description": "Target click URL for promotional image/card redirection."
+    },
+    "clickCount": {
+      "defaultValue": {
+        "value": "3"
+      },
+      "description": "Click threshold for Interstitial Ads inside the Downloader app."
+    },
+    "rewarded_click_count": {
+      "defaultValue": {
+        "value": "1"
+      },
+      "description": "Threshold for Rewarded Ads."
+    },
+    "app_open_click_count": {
+      "defaultValue": {
+        "value": "1"
+      },
+      "description": "Threshold for App Open Ad on launch."
+    },
+    "app_open_resume_count": {
+      "defaultValue": {
+        "value": "1"
+      },
+      "description": "Threshold for App Open Ad on app resume."
+    },
+    "is_app_open_on_resume": {
+      "defaultValue": {
+        "value": "true"
+      },
+      "description": "Enable or disable App Open Ad when returning to the app from background."
+    },
+    "isLauncherAdsShow": {
+      "defaultValue": {
+        "value": "true"
+      },
+      "description": "Global master switch for Launcher Ads. If false, launcher operates completely ad-free."
+    },
+    "launcherClickCount": {
+      "defaultValue": {
+        "value": "2"
+      },
+      "description": "Number of app launches/item clicks in Launcher before triggering an ad."
+    },
+    "isLauncherWebAdShow": {
+      "defaultValue": {
+        "value": "false"
+      },
+      "description": "If true, launcher alternates between Interstitial Ad and Web Ad URL redirection on reaching click count. If false, always shows Interstitial Ad."
+    }
+  }
+}

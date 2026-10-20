@@ -1,0 +1,314 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/rlMediaPreviewRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#000000">
+
+    <!-- Top Action Bar -->
+    <LinearLayout
+        android:id="@+id/rlPreviewTopBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:background="#CC111111"
+        android:orientation="vertical">
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:paddingHorizontal="14dp">
+
+            <ImageView
+                android:id="@+id/btnPreviewBack"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:layout_centerVertical="true"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:contentDescription="Back"
+                android:focusable="true"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_btn_back" />
+
+            <TextView
+                android:id="@+id/tvPreviewTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_centerVertical="true"
+                android:layout_marginStart="14dp"
+                android:layout_marginEnd="14dp"
+                android:layout_toEndOf="@id/btnPreviewBack"
+                android:ellipsize="middle"
+                android:maxLines="1"
+                android:textColor="#FFFFFF"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                tools:text="instagram_video_123.mp4" />
+        </RelativeLayout>
+    </LinearLayout>
+
+    <!-- Center Content Container -->
+    <FrameLayout
+        android:id="@+id/flPreviewContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_above="@id/llPreviewBottomBar"
+        android:layout_below="@id/rlPreviewTopBar">
+
+        <!-- 1. IMAGE PREVIEW -->
+        <ImageView
+            android:id="@+id/ivPreviewImage"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_gravity="center"
+            android:adjustViewBounds="true"
+            android:scaleType="fitCenter"
+            android:visibility="gone" />
+
+        <!-- 2. VIDEO PREVIEW -->
+        <FrameLayout
+            android:id="@+id/flVideoPreview"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone">
+
+            <VideoView
+                android:id="@+id/vvPreviewVideo"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_gravity="center" />
+
+            <ImageView
+                android:id="@+id/ivVideoPlayPauseOverlay"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:layout_gravity="center"
+                android:background="@drawable/bg_recent_all_circle"
+                android:backgroundTint="#80000000"
+                android:padding="16dp"
+                android:src="@drawable/ic_play_arrow"
+                android:visibility="gone"
+                app:tint="#FFFFFF" />
+
+            <!-- Video Progress / Seek Overlay -->
+            <LinearLayout
+                android:id="@+id/llVideoControls"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom"
+                android:background="#80000000"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="8dp">
+
+                <ImageView
+                    android:id="@+id/btnVideoPlayPauseSmall"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:contentDescription="Play/Pause"
+                    android:src="@drawable/ic_pause"
+                    app:tint="#FFFFFF" />
+
+                <TextView
+                    android:id="@+id/tvVideoCurrentTime"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:text="00:00"
+                    android:textColor="#FFFFFF"
+                    android:textSize="12sp" />
+
+                <SeekBar
+                    android:id="@+id/sbVideoProgress"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:max="1000"
+                    android:progressTint="@color/primary_orange"
+                    android:thumbTint="@color/primary_orange" />
+
+                <TextView
+                    android:id="@+id/tvVideoTotalTime"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="00:00"
+                    android:textColor="#CCCCCC"
+                    android:textSize="12sp" />
+            </LinearLayout>
+        </FrameLayout>
+
+        <!-- 3. AUDIO PREVIEW -->
+        <LinearLayout
+            android:id="@+id/llAudioPreview"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="24dp"
+            android:visibility="gone">
+
+            <!-- Audio Art / Disc Visualizer -->
+            <FrameLayout
+                android:id="@+id/flAudioArtContainer"
+                android:layout_width="160dp"
+                android:layout_height="160dp"
+                android:background="@drawable/bg_recent_all_circle"
+                android:backgroundTint="#FFEBD4">
+
+                <ImageView
+                    android:layout_width="80dp"
+                    android:layout_height="80dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_audio_note"
+                    app:tint="@color/primary_orange" />
+            </FrameLayout>
+
+            <TextView
+                android:id="@+id/tvAudioTrackTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:ellipsize="middle"
+                android:gravity="center"
+                android:maxLines="2"
+                android:textColor="#FFFFFF"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                tools:text="Audio_Track_Name.mp3" />
+
+            <TextView
+                android:id="@+id/tvAudioTrackSub"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:textColor="#9CA3AF"
+                android:textSize="13sp"
+                tools:text="XXVI Audio Player" />
+
+            <!-- Audio Progress Bar -->
+            <SeekBar
+                android:id="@+id/sbAudioProgress"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="28dp"
+                android:max="1000"
+                android:progressTint="@color/primary_orange"
+                android:thumbTint="@color/primary_orange" />
+
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="12dp"
+                android:layout_marginTop="4dp">
+
+                <TextView
+                    android:id="@+id/tvAudioCurrentTime"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentStart="true"
+                    android:text="00:00"
+                    android:textColor="#D1D5DB"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:id="@+id/tvAudioTotalTime"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentEnd="true"
+                    android:text="00:00"
+                    android:textColor="#9CA3AF"
+                    android:textSize="12sp" />
+            </RelativeLayout>
+
+            <!-- Audio Play / Pause Controller -->
+            <ImageView
+                android:id="@+id/btnAudioPlayPause"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:layout_marginTop="20dp"
+                android:background="@drawable/bg_circle_orange_fab"
+                android:clickable="true"
+                android:contentDescription="Play or Pause Audio"
+                android:focusable="true"
+                android:padding="16dp"
+                android:src="@drawable/ic_pause"
+                app:tint="@color/white" />
+        </LinearLayout>
+    </FrameLayout>
+
+    <!-- Bottom Actions Bar -->
+    <LinearLayout
+        android:id="@+id/llPreviewBottomBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:background="#B3000000"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="14dp">
+
+        <!-- Share Button -->
+        <LinearLayout
+            android:id="@+id/btnPreviewShareBottom"
+            android:layout_width="0dp"
+            android:layout_height="46dp"
+            android:layout_marginEnd="8dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_wa_tab_inactive"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_menu_share"
+                app:tint="@color/text_dark_brown" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:text="Share"
+                android:textColor="@color/text_dark_brown"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Delete Button -->
+        <LinearLayout
+            android:id="@+id/btnPreviewDeleteBottom"
+            android:layout_width="0dp"
+            android:layout_height="46dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_btn_close_outline"
+            android:backgroundTint="#FFEBEE"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_trash_white"
+                app:tint="#D32F2F" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:text="Delete"
+                android:textColor="#D32F2F"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </LinearLayout>
+
+</RelativeLayout>

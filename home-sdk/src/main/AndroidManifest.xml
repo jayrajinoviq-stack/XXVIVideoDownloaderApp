@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.CREATE_SHORTCUT" />
+        </intent>
+        <intent>
+            <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+        </intent>
+    </queries>
+
+    <uses-permission
+        android:name="android.permission.BIND_APPWIDGET"
+        tools:ignore="ProtectedPermissions" />
+
+    <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
+    <uses-permission android:name="android.permission.EXPAND_STATUS_BAR" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.SET_WALLPAPER" />
+    <uses-permission android:name="android.permission.SET_WALLPAPER_HINTS" />
+
+
+    <application>
+
+        <activity
+            android:name="com.design.home.activities.SplashActivity"
+            android:exported="false"
+            android:theme="@style/LauncherTheme" />
+
+        <activity
+            android:name="com.design.home.activities.LauncherHomeActivity"
+            android:clearTaskOnLaunch="true"
+            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:screenOrientation="portrait"
+            android:theme="@style/LauncherTheme">
+
+            <intent-filter>
+                <action android:name="android.content.pm.action.CONFIRM_PIN_SHORTCUT" />
+            </intent-filter>
+
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.HOME" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+
+        </activity>
+
+        <activity
+            android:name="com.design.home.activities.SettingsActivity"
+            android:configChanges="orientation"
+            android:exported="true"
+            android:label="@string/settings"
+            android:theme="@style/LauncherTheme"
+            android:parentActivityName="com.design.home.activities.LauncherHomeActivity" />
+
+        <activity
+            android:name="com.design.home.activities.HiddenIconsActivity"
+            android:exported="false"
+            android:label="@string/hidden_icons"
+            android:parentActivityName="com.design.home.activities.SettingsActivity" />
+
+        <activity
+            android:name="com.design.commons.activities.AboutActivity"
+            android:exported="false"
+            android:parentActivityName="com.design.home.activities.SettingsActivity" />
+
+        <activity
+            android:name="com.design.commons.activities.CustomizationActivity"
+            android:exported="false"
+            android:parentActivityName="com.design.home.activities.SettingsActivity" />
+
+        <receiver
+            android:name="com.design.home.receivers.LockDeviceAdminReceiver"
+            android:exported="true"
+            android:permission="android.permission.BIND_DEVICE_ADMIN">
+
+            <meta-data
+                android:name="android.app.device_admin"
+                android:resource="@xml/device_admin_policies" />
+
+            <intent-filter>
+                <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
+            </intent-filter>
+
+        </receiver>
+
+        <receiver
+            android:name="com.design.home.widgets.SmartTopWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_smart_top_title">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.design.home.widgets.ACTION_REFRESH_WEATHER" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/smart_top_widget_info" />
+        </receiver>
+
+    </application>
+
+</manifest>

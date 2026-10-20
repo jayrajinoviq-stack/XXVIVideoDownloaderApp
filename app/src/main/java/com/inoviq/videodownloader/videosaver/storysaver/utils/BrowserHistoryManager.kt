@@ -14,19 +14,25 @@ data class HistoryEntry(
 object BrowserHistoryManager {
     private const val PREFS_NAME = "xxvi_history_prefs"
     private const val KEY_HISTORY = "history_entries"
+    private const val KEY_MOCK_PURGED = "mock_history_purged_v2"
 
     fun getHistory(context: Context): MutableList<HistoryEntry> {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
+        // One-time purge of previously hardcoded mock Instagram items
+        if (!prefs.getBoolean(KEY_MOCK_PURGED, false)) {
+            val existing = prefs.getString(KEY_HISTORY, null)
+            if (existing != null && (existing.contains("https://www.instagram.com/?hl=en") || existing.contains("instagram.com/?hl=en"))) {
+                prefs.edit().putString(KEY_HISTORY, "[]").putBoolean(KEY_MOCK_PURGED, true).apply()
+            } else {
+                prefs.edit().putBoolean(KEY_MOCK_PURGED, true).apply()
+            }
+        }
+
         val jsonStr = prefs.getString(KEY_HISTORY, null)
         val list = mutableListOf<HistoryEntry>()
 
         if (jsonStr.isNullOrBlank()) {
-            // Seed matching Screenshots 1, 2
-            list.add(HistoryEntry(title = "Instagram", url = "https://www.instagram.com/?hl=en"))
-            list.add(HistoryEntry(title = "Instagram", url = "https://www.instagram.com/?hl=en"))
-            list.add(HistoryEntry(title = "Instagram", url = "https://www.instagram.com/?hl=en"))
-            list.add(HistoryEntry(title = "Instagram", url = "https://www.instagram.com/?hl=en"))
-            saveHistory(context, list)
             return list
         }
 
@@ -34,14 +40,17 @@ object BrowserHistoryManager {
             val jsonArray = JSONArray(jsonStr)
             for (i in 0 until jsonArray.length()) {
                 val obj = jsonArray.getJSONObject(i)
-                list.add(
-                    HistoryEntry(
-                        id = obj.optString("id", System.currentTimeMillis().toString()),
-                        title = obj.optString("title", "Website"),
-                        url = obj.optString("url", ""),
-                        timestamp = obj.optLong("timestamp", System.currentTimeMillis())
+                val url = obj.optString("url", "")
+                if (url.isNotBlank() && !url.equals("about:blank", true) && !url.equals("home", true)) {
+                    list.add(
+                        HistoryEntry(
+                            id = obj.optString("id", System.currentTimeMillis().toString()),
+                            title = obj.optString("title", "Website"),
+                            url = url,
+                            timestamp = obj.optLong("timestamp", System.currentTimeMillis())
+                        )
                     )
-                )
+                }
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -50,10 +59,16 @@ object BrowserHistoryManager {
     }
 
     fun addHistory(context: Context, title: String, url: String) {
-        if (url.isBlank() || url.equals("about:blank", true) || url.equals("home", true)) return
+        val cleanUrl = url.trim()
+        if (cleanUrl.isBlank() || cleanUrl.equals("about:blank", true) || cleanUrl.equals("home", true)) return
         val list = getHistory(context)
-        list.removeAll { it.url.equals(url, ignoreCase = true) }
-        list.add(0, HistoryEntry(title = title, url = url))
+        list.removeAll { it.url.equals(cleanUrl, ignoreCase = true) }
+        val finalTitle = if (title.isBlank() || title.equals("about:blank", true) || title.equals("home", true)) {
+            try { android.net.Uri.parse(cleanUrl).host ?: cleanUrl } catch (_: Exception) { cleanUrl }
+        } else {
+            title
+        }
+        list.add(0, HistoryEntry(title = finalTitle, url = cleanUrl))
         saveHistory(context, list)
     }
 
@@ -65,7 +80,7 @@ object BrowserHistoryManager {
 
     fun clearAll(context: Context) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        prefs.edit().remove(KEY_HISTORY).apply()
+        prefs.edit().putString(KEY_HISTORY, "[]").apply()
     }
 
     private const val KEY_RECENTLY_USED_ENABLED = "recently_used_enabled"
@@ -81,7 +96,6 @@ object BrowserHistoryManager {
 
     /**
      * Returns unique websites visited recently.
-     * Always returns at least 2 entries so Home Screen always shows Recent items.
      */
     fun getRecentlyUsedWebsites24h(context: Context): List<HistoryEntry> {
         val history = getHistory(context)
@@ -95,22 +109,6 @@ object BrowserHistoryManager {
                 result.add(item)
             }
             if (result.size >= 2) break
-        }
-
-        // Always guarantee at least 2 items (matching target screenshot)
-        if (result.size < 2) {
-            val defaults = listOf(
-                HistoryEntry(title = "Facebook", url = "https://m.facebook.com/"),
-                HistoryEntry(title = "duckduckgo.com", url = "https://duckduckgo.com/"),
-                HistoryEntry(title = "Instagram", url = "https://www.instagram.com/")
-            )
-            for (d in defaults) {
-                val domain = extractDomain(d.url, d.title)
-                if (uniqueDomains.add(domain)) {
-                    result.add(d)
-                }
-                if (result.size >= 2) break
-            }
         }
 
         return result

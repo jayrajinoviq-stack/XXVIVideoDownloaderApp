@@ -11,11 +11,19 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import com.inoviq.videodownloader.videosaver.storysaver.ads.AdManager
+import com.inoviq.videodownloader.videosaver.storysaver.ads.AdsResponse
+import com.inoviq.videodownloader.videosaver.storysaver.ads.RemoteConfigHelper
 import com.inoviq.videodownloader.videosaver.storysaver.databinding.ActivitySplashBinding
+import com.inoviq.videodownloader.videosaver.storysaver.utils.LauncherHelper
 
 class SplashActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivitySplashBinding
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private var hasNavigated = false
+    private val minSplashDurationMs = 2000L
+    private var splashStartTime = 0L
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -37,9 +45,35 @@ class SplashActivity : AppCompatActivity() {
             insets
         }
 
-        Handler(Looper.getMainLooper()).postDelayed({
-            startActivity(Intent(this, MainActivity::class.java))
+        splashStartTime = System.currentTimeMillis()
+        RemoteConfigHelper.waitForFetch(timeoutMs = 3500L) {
+            AdsResponse.initialize(this)
+            val elapsed = System.currentTimeMillis() - splashStartTime
+            val remaining = (minSplashDurationMs - elapsed).coerceAtLeast(0L)
+            mainHandler.postDelayed({ attemptNavigate() }, remaining)
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        mainHandler.removeCallbacksAndMessages(null)
+    }
+
+    private fun attemptNavigate() {
+        if (hasNavigated || isFinishing || isDestroyed) return
+        navigateToNext()
+    }
+
+    private fun navigateToNext() {
+        if (hasNavigated) return
+        hasNavigated = true
+        AdManager.showAppOpenAd(this) {
+            if (LauncherHelper.isDefaultLauncher(this)) {
+                LauncherHelper.openLauncherHome(this)
+            } else {
+                startActivity(Intent(this, SetDefaultLauncherActivity::class.java))
+            }
             finish()
-        }, 1200L)
+        }
     }
 }

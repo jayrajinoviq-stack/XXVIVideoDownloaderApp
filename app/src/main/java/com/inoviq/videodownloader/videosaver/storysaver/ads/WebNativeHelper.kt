@@ -21,20 +21,10 @@ import com.inoviq.videodownloader.videosaver.storysaver.databinding.AdWebNativeL
 import com.inoviq.videodownloader.videosaver.storysaver.databinding.AdWebNativeSmallBinding
 import com.inoviq.videodownloader.videosaver.storysaver.databinding.DialogCustomAppOpenBinding
 
-/**
- * Unified Helper for Custom Web/URL Ads when [AdsResponse.isShowAdsURL] is true.
- * - Opens Chrome Custom Tabs for Interstitial, Rewarded, and Web clicks.
- * - Shows Custom App Open Dialog with gradient CTA and Continue button.
- * - Renders Small and Large Web Native image ads using local drawables.
- */
 object WebNativeHelper {
     private const val TAG = "WebNativeHelper"
 
     fun shouldShowWebNative(): Boolean = AdsResponse.isShowAdsURL
-
-    /**
-     * Opens Chrome Custom Tab with target URL and fires callback when user returns.
-     */
     fun openCustomTab(
         activity: Activity,
         url: String? = null,
@@ -233,9 +223,6 @@ object WebNativeHelper {
         onFinished?.invoke()
     }
 
-    /**
-     * Renders Small Web Native image ad inside the provided container.
-     */
     fun showWebNativeSmall(
         context: Context,
         container: ViewGroup,

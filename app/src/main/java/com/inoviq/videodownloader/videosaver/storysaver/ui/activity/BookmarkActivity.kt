@@ -27,31 +27,31 @@ class BookmarkActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT),
             navigationBarStyle = SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
         )
+        super.onCreate(savedInstanceState)
         binding = ActivityBookmarkBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
         val density = resources.displayMetrics.density
-        ViewCompat.setOnApplyWindowInsetsListener(binding.llBookmarkRoot) { _, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            binding.bookmarkTopBar.setPadding(
-                (16 * density).toInt(),
-                systemBars.top + (8 * density).toInt(),
-                (16 * density).toInt(),
-                (10 * density).toInt()
+        binding.bookmarkTopBar.setPadding(
+            (16 * density).toInt(),
+            (10 * density).toInt(),
+            (16 * density).toInt(),
+            (10 * density).toInt()
+        )
+        binding.rvBookmarkList.setPadding(0, 0, 0, (20 * density).toInt())
+
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { v, insets ->
+            val systemBars = insets.getInsets(
+                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
             )
-            binding.rvBookmarkList.setPadding(
-                0,
-                0,
-                0,
-                systemBars.bottom + (20 * density).toInt()
-            )
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
+        ViewCompat.requestApplyInsets(binding.root)
 
         binding.btnBookmarkBack.setOnClickListener {
             finish()

@@ -10,6 +10,11 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
 
+    <queries>
+        <package android:name="com.whatsapp" />
+        <package android:name="com.whatsapp.w4b" />
+    </queries>
+
     <application
         android:name=".MyApp"
         android:allowBackup="true"
@@ -39,8 +44,14 @@
             </intent-filter>
         </activity>
         <activity
+            android:name=".ui.activity.SetDefaultLauncherActivity"
+            android:exported="false"
+            android:theme="@style/Theme.XXVIVideoDownloader"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
             android:name=".ui.activity.MainActivity"
             android:exported="false"
+            android:theme="@style/Theme.XXVIVideoDownloader.SlideFromLeft"
             android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".ui.activity.SettingsActivity"
@@ -56,6 +67,10 @@
             android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".ui.activity.HowToWorkActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".ui.activity.WhatsAppStatusActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 

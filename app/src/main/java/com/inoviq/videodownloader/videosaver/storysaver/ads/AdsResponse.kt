@@ -26,6 +26,11 @@ object AdsResponse {
     var APP_OPEN_RESUME_CLICK_THRESHOLD: Long = 1L
     var isAppOpenOnResume: Boolean = true
 
+    // Launcher Specific Controls
+    var isLauncherAdsShow: Boolean = BuildConfig.DEBUG
+    var LAUNCHER_CLICK_THRESHOLD: Long = 2L
+    var isLauncherWebAdShow: Boolean = false
+
     // Fixed URLs (Not from Firebase)
     const val PRIVACY_POLICY_URL = "https://sites.google.com/view/ffff-diamond-skins-emotes/privacy-policy"
     const val TERMS_CONDITIONS_URL = "https://sites.google.com/view/ffff-diamond-skins-emotes/terms-and-conditions"
@@ -52,22 +57,22 @@ object AdsResponse {
     const val TEST_REWARDED_ID = "ca-app-pub-3940256099942544/5224354917"
     const val TEST_REWARDED_INTERSTITIAL_ID = "ca-app-pub-3940256099942544/5354046379"
 
-    var BANNER_ID: String = TEST_BANNER_ID
+    var BANNER_ID: String = if (BuildConfig.DEBUG) TEST_BANNER_ID else ""
     var FALLBACK_BANNER_ID: String = ""
 
-    var INTERSTITIAL_ID: String = TEST_INTERSTITIAL_ID
-    var FALLBACK_INTERSTITIAL_ID: String = TEST_FALLBACK_INTERSTITIAL_ID
+    var INTERSTITIAL_ID: String = if (BuildConfig.DEBUG) TEST_INTERSTITIAL_ID else ""
+    var FALLBACK_INTERSTITIAL_ID: String = if (BuildConfig.DEBUG) TEST_FALLBACK_INTERSTITIAL_ID else ""
 
-    var NATIVE_ID: String = TEST_NATIVE_ID
+    var NATIVE_ID: String = if (BuildConfig.DEBUG) TEST_NATIVE_ID else ""
     var FALLBACK_NATIVE_ID: String = ""
 
-    var APP_OPEN_ID: String = TEST_APP_OPEN_ID
+    var APP_OPEN_ID: String = if (BuildConfig.DEBUG) TEST_APP_OPEN_ID else ""
     var FALLBACK_APP_OPEN_ID: String = ""
 
-    var REWARDED_ID: String = TEST_REWARDED_ID
+    var REWARDED_ID: String = if (BuildConfig.DEBUG) TEST_REWARDED_ID else ""
     var FALLBACK_REWARDED_ID: String = ""
 
-    var REWARDED_INTERSTITIAL_ID: String = TEST_REWARDED_INTERSTITIAL_ID
+    var REWARDED_INTERSTITIAL_ID: String = if (BuildConfig.DEBUG) TEST_REWARDED_INTERSTITIAL_ID else ""
     var FALLBACK_REWARDED_INTERSTITIAL_ID: String = ""
 
     // Remote Web Native Image URLs (Firebase JSON)
@@ -115,6 +120,9 @@ object AdsResponse {
         APP_OPEN_CLICK_THRESHOLD = 1L
         APP_OPEN_RESUME_CLICK_THRESHOLD = 1L
         isAppOpenOnResume = true
+        isLauncherAdsShow = true
+        LAUNCHER_CLICK_THRESHOLD = 2L
+        isLauncherWebAdShow = false
 
         BANNER_ID = TEST_BANNER_ID
         FALLBACK_BANNER_ID = ""
@@ -300,6 +308,12 @@ object AdsResponse {
         APP_OPEN_RESUME_CLICK_THRESHOLD = if (rawAppOpenResumeThreshold <= 0L) 1L else rawAppOpenResumeThreshold
 
         isAppOpenOnResume = getRemoteBoolean("is_app_open_on_resume", default = true)
+
+        // Launcher Specific Controls from Firebase Remote Config
+        isLauncherAdsShow = getRemoteBoolean("isLauncherAdsShow", "is_launcher_ads_show", default = false)
+        val rawLauncherThreshold = getRemoteLong("launcherClickCount", "launcher_click_count", default = 2L)
+        LAUNCHER_CLICK_THRESHOLD = if (rawLauncherThreshold <= 0L) 1L else rawLauncherThreshold
+        isLauncherWebAdShow = getRemoteBoolean("isLauncherWebAdShow", "is_launcher_web_ad_show", default = false)
 
         // Dynamic Firebase Content URLs
         val remoteNews = getRemoteString("url_news", "news_url")

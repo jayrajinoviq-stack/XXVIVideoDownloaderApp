@@ -20,15 +20,25 @@ class HomeScreenShortcutAdapter(
         private set
 
     fun setEditMode(editMode: Boolean) {
-        if (this.isEditMode != editMode) {
-            this.isEditMode = editMode
+        if (isEditMode != editMode) {
+            isEditMode = editMode
             notifyDataSetChanged()
         }
+    }
+
+    fun clearDeleteMode(): Boolean {
+        if (isEditMode) {
+            isEditMode = false
+            notifyDataSetChanged()
+            return true
+        }
+        return false
     }
 
     fun updateShortcuts(newShortcuts: List<HomeScreenShortcut>) {
         shortcuts.clear()
         shortcuts.addAll(newShortcuts)
+        isEditMode = false
         notifyDataSetChanged()
     }
 
@@ -61,6 +71,7 @@ class HomeScreenShortcutAdapter(
         fun bindShortcut(shortcut: HomeScreenShortcut) {
             val context = binding.root.context
             val density = context.resources.displayMetrics.density
+            val isWhatsApp = HomeScreenShortcutManager.isWhatsApp(shortcut)
 
             binding.tvShortcutTitle.text = shortcut.title
 
@@ -76,14 +87,18 @@ class HomeScreenShortcutAdapter(
                 binding.ivShortcutIcon.setPadding(0, 0, 0, 0)
             }
 
-            // Show cancel badge on top-left when in edit mode
-            binding.btnCancelShortcut.visibility = if (isEditMode) View.VISIBLE else View.GONE
+            // WhatsApp CANNOT be deleted, so never show cancel button on WhatsApp.
+            // When in edit mode, ALL other shortcuts show the delete/cancel badge on the top-left side.
+            val showCancel = isEditMode && !isWhatsApp
+            binding.btnCancelShortcut.visibility = if (showCancel) View.VISIBLE else View.GONE
+
             binding.btnCancelShortcut.setOnClickListener {
                 onRemoveClick(shortcut)
             }
 
             binding.llShortcutContainer.setOnClickListener {
                 if (isEditMode) {
+                    // Clicking the shortcut outside the cancel badge exits edit mode smoothly
                     setEditMode(false)
                 } else {
                     onShortcutClick(shortcut)
@@ -91,7 +106,14 @@ class HomeScreenShortcutAdapter(
             }
 
             binding.llShortcutContainer.setOnLongClickListener {
-                if (!isEditMode) {
+                if (isWhatsApp) {
+                    // WhatsApp cannot be deleted
+                    return@setOnLongClickListener true
+                }
+                if (isEditMode) {
+                    setEditMode(false)
+                } else {
+                    // Hold any shortcut to show cancel badges on all items (except WhatsApp)
                     setEditMode(true)
                 }
                 true

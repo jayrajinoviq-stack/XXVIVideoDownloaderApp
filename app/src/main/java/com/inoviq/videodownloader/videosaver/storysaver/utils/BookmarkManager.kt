@@ -19,8 +19,8 @@ object BookmarkManager {
         val jsonStr = prefs.getString(KEY_BOOKMARKS, null)
         val list = mutableListOf<BookmarkEntry>()
 
-        if (jsonStr.isNullOrBlank()) {
-            // Seed matching Screenshot 3
+        if (jsonStr == null) {
+            // First run: seed default bookmarks
             list.add(BookmarkEntry(title = "Instagram", url = "https://www.instagram.com/"))
             list.add(BookmarkEntry(title = "Facebook", url = "https://m.facebook.com/"))
             list.add(BookmarkEntry(title = "WhatsApp", url = "https://web.whatsapp.com/"))

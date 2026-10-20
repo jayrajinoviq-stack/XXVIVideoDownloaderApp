@@ -19,39 +19,25 @@ class HowToWorkActivity : AppCompatActivity() {
     private lateinit var adapter: HowToWorkAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT),
             navigationBarStyle = SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
         )
+        super.onCreate(savedInstanceState)
         binding = ActivityHowToWorkBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        setupWindowInsets()
-        setupViewPager()
-        setupListeners()
-    }
-
-    private fun setupWindowInsets() {
-        val density = resources.displayMetrics.density
-        ViewCompat.setOnApplyWindowInsetsListener(binding.llHowToWorkRoot) { _, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            binding.howToWorkTopBar.setPadding(
-                systemBars.left,
-                systemBars.top,
-                systemBars.right,
-                0
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { v, insets ->
+            val systemBars = insets.getInsets(
+                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
             )
-            binding.howToWorkTopBar.layoutParams.height = (56 * density).toInt() + systemBars.top
-
-            val lp = binding.btnHowToWorkAction.layoutParams as ViewGroup.MarginLayoutParams
-            lp.bottomMargin = (24 * density).toInt() + systemBars.bottom
-            lp.leftMargin = (20 * density).toInt() + systemBars.left
-            lp.rightMargin = (20 * density).toInt() + systemBars.right
-            binding.btnHowToWorkAction.layoutParams = lp
-
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
+        ViewCompat.requestApplyInsets(binding.root)
+
+        setupViewPager()
+        setupListeners()
     }
 
     private fun setupViewPager() {

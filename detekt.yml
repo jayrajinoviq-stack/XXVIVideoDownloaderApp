@@ -1,0 +1,3 @@
+# Minimal detekt configuration
+build:
+  maxIssues: 0

@@ -146,7 +146,7 @@ class DownloadService : Service() {
                 val itemId = intent.getStringExtra(EXTRA_ITEM_ID)
                 if (!itemId.isNullOrBlank()) {
                     pausedItemIds.add(itemId)
-                    val item = activeDownloadQueue[itemId]
+                    val item = activeDownloadQueue[itemId] ?: DownloadProgressManager.getItem(itemId)
                     if (item != null) {
                         val pausedItem = item.copy(isPaused = true)
                         activeDownloadQueue[itemId] = pausedItem
@@ -235,7 +235,7 @@ class DownloadService : Service() {
         val isAudio = item.isAudio || item.title.contains("audio", ignoreCase = true)
         val isVideo = !isAudio && (item.isVideo || url.contains(".mp4") || url.contains(".webm"))
         val ext = when {
-            isAudio -> ".mp3"
+            isAudio -> ".m4a"
             isVideo -> ".mp4"
             else -> ".jpg"
         }
@@ -243,15 +243,19 @@ class DownloadService : Service() {
         val rawName = item.title.replace(Regex("[^a-zA-Z0-9_-]"), "_")
         val baseName = if (rawName.endsWith(ext, ignoreCase = true)) {
             rawName.substring(0, rawName.length - ext.length)
+        } else if (rawName.endsWith(".mp3", ignoreCase = true)) {
+            rawName.substring(0, rawName.length - 4)
+        } else if (rawName.endsWith(".mp4", ignoreCase = true)) {
+            rawName.substring(0, rawName.length - 4)
         } else {
             rawName
         }
 
         val targetDir = DownloadHelper.getDownloadDirectory(applicationContext)
-        val finalTargetFile = File(targetDir, "$baseName$ext")
+        val finalTargetFile = if (isAudio) File(targetDir, "${baseName}_raw.mp4") else File(targetDir, "$baseName$ext")
 
         // For resumable download, write to a .part file until 100% complete
-        val partFile = File(targetDir, "$baseName$ext.part")
+        val partFile = File(targetDir, "${finalTargetFile.name}.part")
         var existingBytes = if (partFile.exists()) partFile.length() else 0L
 
         var outputStream: OutputStream? = null
@@ -427,22 +431,29 @@ class DownloadService : Service() {
             }
             partFile.renameTo(finalTargetFile)
 
-            // If audio was requested and the file is an mp4 video, extract pure audio track
+            // If audio was requested, extract pure audio track to a standard .m4a audio file
             var resolvedLocalPath = finalTargetFile.absolutePath
             if (isAudio) {
-                val pureAudioFile = File(targetDir, "$baseName.mp3")
+                val pureAudioFile = File(targetDir, "$baseName.m4a")
+                if (pureAudioFile.exists()) {
+                    pureAudioFile.delete()
+                }
                 val extracted = extractAudioTrack(finalTargetFile.absolutePath, pureAudioFile.absolutePath)
                 if (extracted && pureAudioFile.exists() && pureAudioFile.length() > 0) {
                     finalTargetFile.delete()
                     resolvedLocalPath = pureAudioFile.absolutePath
                 } else {
-                    resolvedLocalPath = finalTargetFile.absolutePath
+                    // Fallback: If extraction wasn't possible (e.g. stream was already audio), rename to .mp3
+                    val fallbackAudio = File(targetDir, "$baseName.mp3")
+                    if (fallbackAudio.exists()) fallbackAudio.delete()
+                    finalTargetFile.renameTo(fallbackAudio)
+                    resolvedLocalPath = fallbackAudio.absolutePath
                 }
             }
 
             // Register in MediaStore for Android Gallery / Music apps
             val mimeType = when {
-                isAudio -> "audio/mpeg"
+                isAudio -> if (resolvedLocalPath.endsWith(".mp3", ignoreCase = true)) "audio/mpeg" else "audio/mp4"
                 isVideo -> "video/mp4"
                 else -> "image/jpeg"
             }
@@ -531,10 +542,11 @@ class DownloadService : Service() {
             e.printStackTrace()
             DownloadProgressManager.notifyFailed(item, e.message ?: "Download failed")
         } finally {
-            activeDownloadQueue.remove(item.id)
-            pausedItemIds.remove(item.id)
-            cancelledItemIds.remove(item.id)
-            checkStopService()
+            if (!pausedItemIds.contains(item.id)) {
+                activeDownloadQueue.remove(item.id)
+                cancelledItemIds.remove(item.id)
+                checkStopService()
+            }
         }
     }
 
