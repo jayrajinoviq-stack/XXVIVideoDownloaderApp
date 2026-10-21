@@ -118,7 +118,12 @@ object FacebookMediaSniffer {
                                 }
                             }
 
-                            // Also scan for single video_url or playable_url matches
+                            // Also scan for single video_url, playable_url_quality_hd, or playable_url matches
+                            var hdMatch = txt.match(/["'](?:playable_url_quality_hd|browser_native_hd_url)["']\s*:\s*["'](https?:[^"']+)["']/i);
+                            var sdMatch = txt.match(/["'](?:playable_url|browser_native_sd_url)["']\s*:\s*["'](https?:[^"']+)["']/i);
+                            var hdUrl = hdMatch ? cleanVideoUrl(hdMatch[1]) : '';
+                            var sdUrl = sdMatch ? cleanVideoUrl(sdMatch[1]) : '';
+
                             var singleVidRegex = /["'](?:video_url|playable_url|playable_url_quality_hd|browser_native_hd_url)["']\s*:\s*["'](https?:[^"']+)["']/g;
                             var sMatch;
                             while ((sMatch = singleVidRegex.exec(txt)) !== null) {
@@ -136,7 +141,12 @@ object FacebookMediaSniffer {
                                     }
                                     if (window.XXVIBridge) {
                                         var pref2 = getPlatformPrefix();
-                                        window.XXVIBridge.onMediaDetected(vUrl, 'video', pref2 + '_video_' + (cVal || (Date.now() % 1000000)), '');
+                                        var title2 = pref2 + '_video_' + (cVal || (Date.now() % 1000000));
+                                        if (window.XXVIBridge.onMediaDetectedWithQuality) {
+                                            window.XXVIBridge.onMediaDetectedWithQuality(hdUrl || vUrl, 'video', title2, '', hdUrl || vUrl, sdUrl || vUrl);
+                                        } else {
+                                            window.XXVIBridge.onMediaDetected(vUrl, 'video', title2, '');
+                                        }
                                     }
                                 }
                             }
@@ -151,11 +161,13 @@ object FacebookMediaSniffer {
                                         uLow.indexOf('.webm') !== -1 ||
                                         uLow.indexOf('.m3u8') !== -1 ||
                                         uLow.indexOf('.m4v') !== -1 ||
-                                        (uLow.indexOf('cdninstagram.com') !== -1 && (uLow.indexOf('/v/') !== -1 || uLow.indexOf('.mp4') !== -1)) ||
-                                        (uLow.indexOf('fbcdn.net') !== -1 && (uLow.indexOf('/v/t') !== -1 || uLow.indexOf('video') !== -1) && uLow.indexOf('.jpg') === -1 && uLow.indexOf('.png') === -1 && uLow.indexOf('.webp') === -1) ||
-                                        uLow.indexOf('tiktokcdn.com') !== -1 ||
+                                        (uLow.indexOf('video.xx.fbcdn.net') !== -1) ||
+                                        (uLow.indexOf('video') !== -1 && uLow.indexOf('.fbcdn.net') !== -1) ||
+                                        (uLow.indexOf('fbcdn.net') !== -1 && (uLow.indexOf('/v/t42.') !== -1 || uLow.indexOf('/v/t43.') !== -1)) ||
+                                        (uLow.indexOf('cdninstagram.com') !== -1 && (uLow.indexOf('/v/t42.') !== -1 || uLow.indexOf('/v/t43.') !== -1 || uLow.indexOf('.mp4') !== -1)) ||
                                         uLow.indexOf('video.twimg.com') !== -1 ||
                                         uLow.indexOf('v.pinimg.com') !== -1 ||
+                                        (uLow.indexOf('tiktokcdn.com') !== -1 && uLow.indexOf('video') !== -1) ||
                                         uLow.indexOf('sc-cdn.net') !== -1;
 
                             if (isVid) {

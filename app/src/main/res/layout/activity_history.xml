@@ -58,7 +58,8 @@
 
     <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="0dp"
+        android:layout_weight="1">
 
         <!-- History RecyclerView -->
         <androidx.recyclerview.widget.RecyclerView
@@ -81,5 +82,13 @@
             android:textSize="15sp"
             android:visibility="gone" />
     </FrameLayout>
+
+    <!-- Bottom Native Small Ad Container -->
+    <FrameLayout
+        android:id="@+id/flNativeAdSmall"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:background="@color/white" />
 
 </LinearLayout>

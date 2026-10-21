@@ -189,7 +189,7 @@
                 android:fillViewport="true"
                 android:overScrollMode="always"
                 android:scrollbars="none"
-                app:layout_constraintBottom_toTopOf="@id/flFeedbackBottomContainer"
+                app:layout_constraintBottom_toTopOf="@id/flHomeNativeAdLarge"
                 app:layout_constraintTop_toTopOf="parent">
 
             <LinearLayout
@@ -369,46 +369,14 @@
             </LinearLayout>
         </androidx.core.widget.NestedScrollView>
 
-        <!-- Fixed Bottom Feedback Bar (Attached to bottom of screen above navigation bar) -->
+        <!-- Bottom Native Large Ad Container on Home Screen -->
         <FrameLayout
-            android:id="@+id/flFeedbackBottomContainer"
+            android:id="@+id/flHomeNativeAdLarge"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="@color/bg_home_cream"
-            android:paddingTop="6dp"
-            android:paddingBottom="12dp"
-            app:layout_constraintBottom_toBottomOf="parent">
-
-            <!-- Feedback Button (Got Feedback or Question? tell US) -->
-            <LinearLayout
-                android:id="@+id/btnFeedback"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_horizontal"
-                android:background="?attr/selectableItemBackground"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center"
-                android:orientation="horizontal"
-                android:paddingHorizontal="16dp"
-                android:paddingVertical="10dp">
-
-                <ImageView
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
-                    android:contentDescription="Feedback"
-                    android:src="@drawable/ic_chat_feedback" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:text="Got Feedback or Question? tell US"
-                    android:textColor="@color/text_dark_brown"
-                    android:textSize="14sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
-        </FrameLayout>
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="parent" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

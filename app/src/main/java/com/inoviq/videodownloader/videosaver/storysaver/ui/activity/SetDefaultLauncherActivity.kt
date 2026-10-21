@@ -1,5 +1,6 @@
 package com.inoviq.videodownloader.videosaver.storysaver.ui.activity
 
+import android.content.Intent
 import android.os.Bundle
 import android.text.Html
 import android.graphics.Color
@@ -10,10 +11,11 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import com.inoviq.videodownloader.videosaver.storysaver.ads.AdManager
 import com.inoviq.videodownloader.videosaver.storysaver.databinding.ActivitySetDefaultLauncherBinding
 import com.inoviq.videodownloader.videosaver.storysaver.utils.LauncherHelper
 
-class SetDefaultLauncherActivity : AppCompatActivity() {
+class SetDefaultLauncherActivity : BaseActivity() {
 
     private lateinit var binding: ActivitySetDefaultLauncherBinding
 
@@ -25,10 +27,8 @@ class SetDefaultLauncherActivity : AppCompatActivity() {
             finish()
         }
     }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
 
         if (LauncherHelper.isDefaultLauncher(this)) {
             LauncherHelper.openLauncherHome(this)
@@ -53,21 +53,19 @@ class SetDefaultLauncherActivity : AppCompatActivity() {
         val footerHtml = "You Can Change Or Disable These Features Anytime<br>From <font color='#FA9500'>Settings &gt; Apps &gt; Default Apps &gt; Home App</font>"
         binding.tvFooterInfo.text = Html.fromHtml(footerHtml, Html.FROM_HTML_MODE_COMPACT)
 
-        // User requested: set default screen user click back to open launcher home screen
-        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
-            override fun handleOnBackPressed() {
-                LauncherHelper.openLauncherHome(this@SetDefaultLauncherActivity)
+        val openNextAppScreen = {
+            AdManager.showInterstitial(this) {
+                startActivity(Intent(this, MainActivity::class.java))
                 finish()
             }
-        })
+        }
 
         binding.btnLottie.setOnClickListener {
             LauncherHelper.requestDefaultLauncher(this@SetDefaultLauncherActivity, roleLauncher)
         }
 
         binding.btnSkip.setOnClickListener {
-            LauncherHelper.openLauncherHome(this)
-            finish()
+            openNextAppScreen()
         }
     }
 
@@ -75,6 +73,13 @@ class SetDefaultLauncherActivity : AppCompatActivity() {
         super.onResume()
         if (LauncherHelper.isDefaultLauncher(this)) {
             LauncherHelper.openLauncherHome(this)
+            finish()
+        }
+    }
+
+    override fun handleBackPress() {
+        AdManager.showInterstitial(this) {
+            startActivity(Intent(this, MainActivity::class.java))
             finish()
         }
     }

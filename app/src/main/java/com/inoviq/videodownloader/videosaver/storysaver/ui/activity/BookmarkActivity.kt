@@ -12,11 +12,12 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.inoviq.videodownloader.videosaver.storysaver.adapter.BookmarkAdapter
+import com.inoviq.videodownloader.videosaver.storysaver.ads.AdManager
 import com.inoviq.videodownloader.videosaver.storysaver.databinding.ActivityBookmarkBinding
 import com.inoviq.videodownloader.videosaver.storysaver.utils.BookmarkEntry
 import com.inoviq.videodownloader.videosaver.storysaver.utils.BookmarkManager
 
-class BookmarkActivity : AppCompatActivity() {
+class BookmarkActivity : BaseActivity() {
 
     private lateinit var binding: ActivityBookmarkBinding
     private lateinit var bookmarkAdapter: BookmarkAdapter
@@ -27,10 +28,6 @@ class BookmarkActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT),
-            navigationBarStyle = SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
-        )
         super.onCreate(savedInstanceState)
         binding = ActivityBookmarkBinding.inflate(layoutInflater)
         setContentView(binding.root)
@@ -53,8 +50,10 @@ class BookmarkActivity : AppCompatActivity() {
         }
         ViewCompat.requestApplyInsets(binding.root)
 
+        AdManager.loadLargeNativeAd(this, binding.flNativeAdLarge)
+
         binding.btnBookmarkBack.setOnClickListener {
-            finish()
+            handleBackPress()
         }
 
         setupBookmarkList()
@@ -66,11 +65,13 @@ class BookmarkActivity : AppCompatActivity() {
         bookmarkAdapter = BookmarkAdapter(
             bookmarkList,
             onItemClick = { item ->
-                val intent = Intent().apply {
-                    putExtra(EXTRA_NAVIGATE_URL, item.url)
+                AdManager.showInterstitial(this) {
+                    val intent = Intent().apply {
+                        putExtra(EXTRA_NAVIGATE_URL, item.url)
+                    }
+                    setResult(RESULT_OK, intent)
+                    finish()
                 }
-                setResult(RESULT_OK, intent)
-                finish()
             },
             onRibbonClick = { item, position ->
                 BookmarkManager.removeBookmark(this, item)
@@ -79,11 +80,13 @@ class BookmarkActivity : AppCompatActivity() {
                 Toast.makeText(this, "Bookmark removed", Toast.LENGTH_SHORT).show()
             },
             onAddTabClick = { item ->
-                val intent = Intent().apply {
-                    putExtra(EXTRA_NEW_TAB_URL, item.url)
+                AdManager.showInterstitial(this) {
+                    val intent = Intent().apply {
+                        putExtra(EXTRA_NEW_TAB_URL, item.url)
+                    }
+                    setResult(RESULT_OK, intent)
+                    finish()
                 }
-                setResult(RESULT_OK, intent)
-                finish()
             }
         )
 

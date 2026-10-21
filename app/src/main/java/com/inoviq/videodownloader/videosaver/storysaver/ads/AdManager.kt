@@ -52,6 +52,20 @@ object AdManager {
     }
 
     /**
+     * Shows a Rewarded ad respecting count threshold.
+     */
+    fun showRewardedAd(
+        activity: Activity,
+        onComplete: () -> Unit
+    ) {
+        AdsManager.onRewardedUserAction(
+            activity = activity,
+            onRewardEarned = {},
+            onAdClosed = onComplete
+        )
+    }
+
+    /**
      * Shows App Open ad with watchdog safety timeout to ensure onComplete is never delayed.
      */
     fun showAppOpenAd(

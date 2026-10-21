@@ -18,6 +18,9 @@ object RemoteConfigHelper {
 
     private var firebaseRemoteConfigInstance: FirebaseRemoteConfig? = null
 
+    private var lastFetchTimeMs: Long = 0L
+    private const val MIN_BACKGROUND_FETCH_INTERVAL_MS: Long = 15 * 60 * 1000L // 15 minutes throttle
+
     /**
      * Initializes and fetches the latest Remote Config values from Firebase.
      */
@@ -33,6 +36,7 @@ object RemoteConfigHelper {
             remoteConfig.setConfigSettingsAsync(configSettings)
 
             remoteConfig.fetchAndActivate().addOnCompleteListener { task ->
+                lastFetchTimeMs = System.currentTimeMillis()
                 Log.d(TAG, "Firebase Remote Config fetchAndActivate finished. isSuccessful=${task.isSuccessful}")
                 onComplete?.invoke()
             }
@@ -42,6 +46,36 @@ object RemoteConfigHelper {
         }
 
         onComplete?.invoke()
+    }
+
+    /**
+     * Silently fetches updated Firebase config in the background when Launcher resumes.
+     * Throttled to avoid unnecessary network calls (default: every 15 minutes).
+     * Automatically refreshes AdsResponse upon successful fetch.
+     */
+    fun fetchInBackgroundIfStale(context: android.content.Context, force: Boolean = false) {
+        val now = System.currentTimeMillis()
+        if (!force && now - lastFetchTimeMs < MIN_BACKGROUND_FETCH_INTERVAL_MS) {
+            return
+        }
+        lastFetchTimeMs = now
+        Log.d(TAG, "fetchInBackgroundIfStale: Checking Firebase Remote Config for updates in background...")
+        try {
+            val remoteConfig = firebaseRemoteConfigInstance ?: FirebaseRemoteConfig.getInstance().also {
+                firebaseRemoteConfigInstance = it
+            }
+            remoteConfig.fetchAndActivate().addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    val updated = task.result
+                    Log.d(TAG, "Background fetchAndActivate complete. Config updated=$updated")
+                    AdsResponse.initialize(context)
+                } else {
+                    Log.w(TAG, "Background fetchAndActivate failed: ${task.exception?.message}")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error in background fetchInBackgroundIfStale", e)
+        }
     }
 
     /**

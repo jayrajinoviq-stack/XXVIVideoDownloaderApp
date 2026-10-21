@@ -263,6 +263,51 @@
         tools:itemCount="3"
         tools:listitem="@layout/item_download_media" />
 
+    <!-- 3. Loading / Fetching State -->
+    <LinearLayout
+        android:id="@+id/llLoadingState"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:layout_marginBottom="24dp"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:paddingHorizontal="24dp"
+        android:paddingVertical="28dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@id/llBottomButtons"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/viewDragIndicator">
+
+        <ProgressBar
+            android:id="@+id/pbLoading"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:indeterminate="true"
+            android:indeterminateTint="@color/primary_orange" />
+
+        <TextView
+            android:id="@+id/tvLoadingTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="Fetching media..."
+            android:textColor="@color/black"
+            android:textSize="17sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvLoadingSubtitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:gravity="center"
+            android:text="Please wait while we retrieve the download link"
+            android:textColor="#6B7280"
+            android:textSize="13sp" />
+    </LinearLayout>
+
     <!-- Bottom Buttons: Cancel and Download (ALWAYS pinned to bottom, never pushed away!) -->
     <LinearLayout
         android:id="@+id/llBottomButtons"

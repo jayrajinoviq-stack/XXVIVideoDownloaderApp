@@ -22,12 +22,13 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.inoviq.videodownloader.videosaver.storysaver.R
 import com.inoviq.videodownloader.videosaver.storysaver.adapter.HistoryAdapter
+import com.inoviq.videodownloader.videosaver.storysaver.ads.AdManager
 import com.inoviq.videodownloader.videosaver.storysaver.databinding.ActivityHistoryBinding
 import com.inoviq.videodownloader.videosaver.storysaver.databinding.PopupHistoryItemMenuBinding
 import com.inoviq.videodownloader.videosaver.storysaver.utils.BrowserHistoryManager
 import com.inoviq.videodownloader.videosaver.storysaver.utils.HistoryEntry
 
-class HistoryActivity : AppCompatActivity() {
+class HistoryActivity : BaseActivity() {
 
     private lateinit var binding: ActivityHistoryBinding
     private lateinit var historyAdapter: HistoryAdapter
@@ -39,10 +40,6 @@ class HistoryActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT),
-            navigationBarStyle = SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
-        )
         super.onCreate(savedInstanceState)
         binding = ActivityHistoryBinding.inflate(layoutInflater)
         setContentView(binding.root)
@@ -66,7 +63,7 @@ class HistoryActivity : AppCompatActivity() {
         ViewCompat.requestApplyInsets(binding.root)
 
         binding.btnHistoryBack.setOnClickListener {
-            finish()
+            handleBackPress()
         }
 
         binding.btnClearAllHistory.setOnClickListener {
@@ -74,6 +71,9 @@ class HistoryActivity : AppCompatActivity() {
         }
 
         setupHistoryList()
+
+        // Bottom Native Small Ad
+        AdManager.loadSmallNativeAd(this, binding.flNativeAdSmall)
     }
 
     private fun setupHistoryList() {
@@ -82,11 +82,13 @@ class HistoryActivity : AppCompatActivity() {
         historyAdapter = HistoryAdapter(
             historyList,
             onItemClick = { item ->
-                val intent = Intent().apply {
-                    putExtra(EXTRA_NAVIGATE_URL, item.url)
+                AdManager.showInterstitial(this) {
+                    val intent = Intent().apply {
+                        putExtra(EXTRA_NAVIGATE_URL, item.url)
+                    }
+                    setResult(RESULT_OK, intent)
+                    finish()
                 }
-                setResult(RESULT_OK, intent)
-                finish()
             },
             onMoreClick = { view, item, position ->
                 showItemMenu(view, item, position)
@@ -133,11 +135,13 @@ class HistoryActivity : AppCompatActivity() {
         // 1. Open In New Tab
         popupBinding.itemMenuOpenInNewTab.setOnClickListener {
             popupWindow.dismiss()
-            val intent = Intent().apply {
-                putExtra(EXTRA_NEW_TAB_URL, item.url)
+            AdManager.showInterstitial(this) {
+                val intent = Intent().apply {
+                    putExtra(EXTRA_NEW_TAB_URL, item.url)
+                }
+                setResult(RESULT_OK, intent)
+                finish()
             }
-            setResult(RESULT_OK, intent)
-            finish()
         }
 
         // 2. Share
@@ -195,12 +199,14 @@ class HistoryActivity : AppCompatActivity() {
         }
 
         btnYes.setOnClickListener {
-            BrowserHistoryManager.clearAll(this)
-            historyList.clear()
-            historyAdapter.notifyDataSetChanged()
-            updateEmptyState()
-            dialog.dismiss()
-            Toast.makeText(this, "History cleared", Toast.LENGTH_SHORT).show()
+            AdManager.showRewardedAd(this) {
+                BrowserHistoryManager.clearAll(this)
+                historyList.clear()
+                historyAdapter.notifyDataSetChanged()
+                updateEmptyState()
+                dialog.dismiss()
+                Toast.makeText(this, "History cleared", Toast.LENGTH_SHORT).show()
+            }
         }
 
         dialog.show()

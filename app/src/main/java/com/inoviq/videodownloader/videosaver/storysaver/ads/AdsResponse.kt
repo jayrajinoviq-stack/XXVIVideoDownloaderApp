@@ -7,6 +7,7 @@ import com.inoviq.videodownloader.videosaver.storysaver.R
 import com.inoviq.videodownloader.videosaver.storysaver.ads.internal.AdNetworkType
 import com.inoviq.videodownloader.videosaver.storysaver.ads.internal.AdRequestBuilder
 import com.google.gson.Gson
+import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 
 object AdsResponse {
@@ -18,6 +19,7 @@ object AdsResponse {
     var isNewAdsID: Boolean = false
     var isChildDirected: Boolean = false
     var ADS_URL: String = ""
+    var ADS_URL_LIST: List<String> = emptyList()
     var AdsImgClickURl: String = ""
     var CLICK_THRESHOLD: Long = 3L
     var REWARDED_CLICK_THRESHOLD: Long = 1L
@@ -32,22 +34,6 @@ object AdsResponse {
     var isLauncherWebAdShow: Boolean = false
 
     // Fixed URLs (Not from Firebase)
-    const val PRIVACY_POLICY_URL = "https://sites.google.com/view/ffff-diamond-skins-emotes/privacy-policy"
-    const val TERMS_CONDITIONS_URL = "https://sites.google.com/view/ffff-diamond-skins-emotes/terms-and-conditions"
-
-    // Default Dynamic URLs
-    const val DEFAULT_NEWS_URL = "https://ff.garena.com/en/news/"
-    const val DEFAULT_CHARS_URL = "https://ff.garena.com/en/chars/"
-    const val DEFAULT_PETS_URL = "https://ff.garena.com/en/pets/"
-    const val DEFAULT_MAPS_URL = "https://ff.garena.com/en/maps/"
-    const val DEFAULT_WEAPONS_URL = "https://ff.garena.com/en/weapons/"
-
-    // Firebase Remote Config Dynamic URLs
-    var NEWS_URL: String = DEFAULT_NEWS_URL
-    var CHARS_URL: String = DEFAULT_CHARS_URL
-    var PETS_URL: String = DEFAULT_PETS_URL
-    var MAPS_URL: String = DEFAULT_MAPS_URL
-    var WEAPONS_URL: String = DEFAULT_WEAPONS_URL
 
     const val TEST_BANNER_ID = "ca-app-pub-3940256099942544/9214589741"
     const val TEST_INTERSTITIAL_ID = "ca-app-pub-3940256099942544/1033173712"
@@ -82,22 +68,10 @@ object AdsResponse {
     // Local Drawables for Web Ads Fallback
     val AdsLargeDrawableList: List<Int> = listOf(
         R.drawable.ad_large_img_1,
-        R.drawable.ad_large_img_2,
-        R.drawable.ad_large_img_3,
-        R.drawable.ad_large_img_4,
-        R.drawable.ad_large_img_5,
-        R.drawable.ad_large_img_6,
-        R.drawable.ad_large_img_7,
     )
 
     val AdsSmallDrawableList: List<Int> = listOf(
         R.drawable.ad_small_img_1,
-        R.drawable.ad_small_img_2,
-        R.drawable.ad_small_img_3,
-        R.drawable.ad_small_img_4,
-        R.drawable.ad_small_img_5,
-        R.drawable.ad_small_img_6,
-        R.drawable.ad_small_img_7,
     )
 
     fun initialize(context: Context? = null, isDebug: Boolean = BuildConfig.DEBUG) {
@@ -121,7 +95,9 @@ object AdsResponse {
         APP_OPEN_RESUME_CLICK_THRESHOLD = 1L
         isAppOpenOnResume = true
         isLauncherAdsShow = true
+
         LAUNCHER_CLICK_THRESHOLD = 2L
+
         isLauncherWebAdShow = false
 
         BANNER_ID = TEST_BANNER_ID
@@ -143,14 +119,17 @@ object AdsResponse {
         FALLBACK_REWARDED_INTERSTITIAL_ID = ""
 
         val remoteUrl = RemoteConfigHelper.getString(KEY_ADS_URL)
-        ADS_URL = if (remoteUrl.isNotBlank()) remoteUrl else ""
+        val parsedRemote = parseAdsUrlList(remoteUrl)
+        ADS_URL_LIST = if (parsedRemote.size >= 2) {
+            parsedRemote
+        } else if (parsedRemote.size == 1) {
+            listOf(parsedRemote[0], "https://www.google.com/")
+        } else {
+            // Default 2 test links in debug mode as requested
+            listOf("https://5128.fflivegame.com/", "https://www.google.com/")
+        }
+        ADS_URL = ADS_URL_LIST.first()
         AdsImgClickURl = ADS_URL
-
-        NEWS_URL = DEFAULT_NEWS_URL
-        CHARS_URL = DEFAULT_CHARS_URL
-        PETS_URL = DEFAULT_PETS_URL
-        MAPS_URL = DEFAULT_MAPS_URL
-        WEAPONS_URL = DEFAULT_WEAPONS_URL
 
         parseWebNativeAds()
     }
@@ -200,7 +179,6 @@ object AdsResponse {
         Log.d(TAG, "Parsed SubAds: $subAds")
 
         when {
-            // Case 1: Both Main and Sub true -> Try Main first; on fail, fallback to Sub
             isMain && isSub -> {
                 BANNER_ID = mainAds.bannerAd.ifBlank { subAds.bannerAd }
                 FALLBACK_BANNER_ID = if (BANNER_ID == mainAds.bannerAd) subAds.bannerAd else ""
@@ -221,7 +199,6 @@ object AdsResponse {
                 FALLBACK_REWARDED_INTERSTITIAL_ID = if (REWARDED_INTERSTITIAL_ID == mainAds.rewardInterAd) subAds.rewardInterAd else ""
             }
 
-            // Case 2: isMain false, isSub true -> Show Sub ads directly as primary (no fallback)
             !isMain && isSub -> {
                 BANNER_ID = subAds.bannerAd
                 FALLBACK_BANNER_ID = ""
@@ -287,7 +264,15 @@ object AdsResponse {
 
         // Target URL
         val remoteUrl = getRemoteString(KEY_ADS_URL, "ads_url")
-        ADS_URL = if (remoteUrl.isNotBlank()) remoteUrl else "https://5128.fflivegame.com/"
+        val parsedRemote = parseAdsUrlList(remoteUrl)
+        ADS_URL_LIST = if (parsedRemote.isNotEmpty()) {
+            parsedRemote
+        } else if (remoteUrl.isNotBlank()) {
+            listOf(remoteUrl)
+        } else {
+            listOf("https://5128.fflivegame.com/")
+        }
+        ADS_URL = ADS_URL_LIST.firstOrNull() ?: "https://5128.fflivegame.com/"
         val rawClickUrl = getRemoteString("AdsImgClickURl", "ads_img_click_url")
         AdsImgClickURl = if (rawClickUrl.isNotBlank()) rawClickUrl else ADS_URL
 
@@ -315,21 +300,6 @@ object AdsResponse {
         LAUNCHER_CLICK_THRESHOLD = if (rawLauncherThreshold <= 0L) 1L else rawLauncherThreshold
         isLauncherWebAdShow = getRemoteBoolean("isLauncherWebAdShow", "is_launcher_web_ad_show", default = false)
 
-        // Dynamic Firebase Content URLs
-        val remoteNews = getRemoteString("url_news", "news_url")
-        NEWS_URL = if (remoteNews.isNotBlank()) remoteNews else DEFAULT_NEWS_URL
-
-        val remoteChars = getRemoteString("url_chars", "chars_url")
-        CHARS_URL = if (remoteChars.isNotBlank()) remoteChars else DEFAULT_CHARS_URL
-
-        val remotePets = getRemoteString("url_pets", "pets_url")
-        PETS_URL = if (remotePets.isNotBlank()) remotePets else DEFAULT_PETS_URL
-
-        val remoteMaps = getRemoteString("url_maps", "maps_url")
-        MAPS_URL = if (remoteMaps.isNotBlank()) remoteMaps else DEFAULT_MAPS_URL
-
-        val remoteWeapons = getRemoteString("url_weapons", "weapons_url")
-        WEAPONS_URL = if (remoteWeapons.isNotBlank()) remoteWeapons else DEFAULT_WEAPONS_URL
 
         parseWebNativeAds()
 
@@ -402,13 +372,48 @@ object AdsResponse {
     }
 
     fun getTargetClickUrl(): String {
-        return if (AdsImgClickURl.isNotBlank()) {
+        return if (ADS_URL_LIST.isNotEmpty()) {
+            ADS_URL_LIST.first()
+        } else if (AdsImgClickURl.isNotBlank()) {
             AdsImgClickURl
         } else if (ADS_URL.isNotBlank()) {
             ADS_URL
         } else {
             "https://5128.fflivegame.com/"
         }
+    }
+
+    fun getTargetClickUrls(): List<String> {
+        if (ADS_URL_LIST.isNotEmpty()) return ADS_URL_LIST
+        val single = getTargetClickUrl()
+        return if (single.isNotBlank()) listOf(single) else listOf("https://5128.fflivegame.com/")
+    }
+
+    fun parseAdsUrlList(raw: String): List<String> {
+        if (raw.isBlank()) return emptyList()
+        val trimmed = raw.trim()
+        val list = mutableListOf<String>()
+        if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+            try {
+                val jsonArray = Gson().fromJson(trimmed, JsonArray::class.java)
+                for (element in jsonArray) {
+                    val u = element.asString.trim()
+                    if (u.isNotBlank()) list.add(u)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to parse AdsURL JSON array: $raw", e)
+            }
+        }
+        if (list.isEmpty()) {
+            if (trimmed.contains(",")) {
+                list.addAll(trimmed.split(",").map { it.trim().trim('"', '\'') }.filter { it.isNotBlank() })
+            } else if (trimmed.contains("\n")) {
+                list.addAll(trimmed.split("\n").map { it.trim().trim('"', '\'') }.filter { it.isNotBlank() })
+            } else if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+                list.add(trimmed.trim('"', '\''))
+            }
+        }
+        return list
     }
 
 

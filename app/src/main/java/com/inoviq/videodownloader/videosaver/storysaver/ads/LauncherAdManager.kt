@@ -6,6 +6,7 @@ import android.net.Uri
 import android.util.Log
 import android.view.View
 import android.view.ViewGroup
+import com.inoviq.videodownloader.videosaver.storysaver.ads.internal.WebNativeHelper
 
 /**
  * Dedicated Ad Manager for Launcher operations.
@@ -42,27 +43,18 @@ object LauncherAdManager {
                 alternateToggle = !alternateToggle
                 if (alternateToggle) {
                     Log.d(TAG, "Showing alternate Interstitial Ad")
-                    AdManager.showInterstitial(activity) {
+                    AdManager.showInterstitialDirect(activity) {
                         onComplete()
                     }
                 } else {
-                    Log.d(TAG, "Showing alternate Web Ad redirect")
-                    val targetUrl = AdsResponse.getTargetClickUrl()
-                    if (targetUrl.isNotBlank()) {
-                        try {
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(targetUrl)).apply {
-                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            }
-                            activity.startActivity(intent)
-                        } catch (e: Exception) {
-                            Log.e(TAG, "Failed to launch web ad url: $targetUrl", e)
-                        }
+                    Log.d(TAG, "Showing alternate Web Ad redirect via Custom Tab sequence")
+                    WebNativeHelper.openCustomTab(activity) {
+                        onComplete()
                     }
-                    onComplete()
                 }
             } else {
                 Log.d(TAG, "Showing standard Interstitial Ad")
-                AdManager.showInterstitial(activity) {
+                AdManager.showInterstitialDirect(activity) {
                     onComplete()
                 }
             }

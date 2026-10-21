@@ -21,8 +21,10 @@ import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.inoviq.videodownloader.videosaver.storysaver.R
 import com.inoviq.videodownloader.videosaver.storysaver.adapter.DownloadMediaAdapter
+import com.inoviq.videodownloader.videosaver.storysaver.ads.AdsManager
 import com.inoviq.videodownloader.videosaver.storysaver.databinding.DialogDownloadBottomSheetBinding
 import com.inoviq.videodownloader.videosaver.storysaver.model.MediaItem
+import com.inoviq.videodownloader.videosaver.storysaver.utils.DownloadHelper
 
 class DownloadBottomSheetFragment : BottomSheetDialogFragment() {
 
@@ -32,6 +34,9 @@ class DownloadBottomSheetFragment : BottomSheetDialogFragment() {
     private var mediaItems: MutableList<MediaItem> = mutableListOf()
     private var onDownloadClickListener: ((List<MediaItem>) -> Unit)? = null
     private var selectedQuality: String = "720P" // "720P", "480P", "Audio"
+    private var isInitialLoading: Boolean = false
+    private var initialLoadingTitle: String = "Fetching media..."
+    private var initialLoadingSubtitle: String = "Please wait while we retrieve the download link"
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -73,6 +78,58 @@ class DownloadBottomSheetFragment : BottomSheetDialogFragment() {
             dismiss()
         }
 
+        if (isInitialLoading || mediaItems.isEmpty()) {
+            showLoadingState(initialLoadingTitle, initialLoadingSubtitle)
+        } else {
+            renderContent()
+        }
+    }
+
+    fun showLoadingState(
+        title: String = "Fetching media...",
+        subtitle: String = "Please wait while we retrieve the download link"
+    ) {
+        initialLoadingTitle = title
+        initialLoadingSubtitle = subtitle
+        val b = _binding ?: run {
+            isInitialLoading = true
+            return
+        }
+        b.llLoadingState.visibility = View.VISIBLE
+        b.pbLoading.visibility = View.VISIBLE
+        b.tvLoadingTitle.text = title
+        b.tvLoadingSubtitle.text = subtitle
+        b.llSingleVideoMode.visibility = View.GONE
+        b.rvMedia.visibility = View.GONE
+        b.btnDownload.visibility = View.GONE
+        b.btnClose.text = "Cancel"
+    }
+
+    fun updateMediaItems(items: List<MediaItem>) {
+        this.mediaItems = items.toMutableList()
+        this.isInitialLoading = false
+        if (_binding != null) {
+            renderContent()
+        }
+    }
+
+    fun showErrorState(message: String = "Could not retrieve media details. Please try again.") {
+        val b = _binding ?: return
+        b.llLoadingState.visibility = View.VISIBLE
+        b.pbLoading.visibility = View.GONE
+        b.tvLoadingTitle.text = "Unable to fetch media"
+        b.tvLoadingSubtitle.text = message
+        b.llSingleVideoMode.visibility = View.GONE
+        b.rvMedia.visibility = View.GONE
+        b.btnDownload.visibility = View.GONE
+        b.btnClose.text = "Close"
+    }
+
+    private fun renderContent() {
+        val b = _binding ?: return
+        b.llLoadingState.visibility = View.GONE
+        b.btnDownload.visibility = View.VISIBLE
+
         // If any video is present in mediaItems, never mix it with photos
         if (mediaItems.any { it.isVideo }) {
             mediaItems.removeAll { !it.isVideo }
@@ -80,7 +137,7 @@ class DownloadBottomSheetFragment : BottomSheetDialogFragment() {
 
         // Single Video Mode (720P, 480P, Audio) is ONLY shown for video downloads.
         // For images (single image or multiple images), show the standard media list (matching screenshot).
-        val isSingleVideo = mediaItems.size == 1 && mediaItems.first().isVideo
+        val isSingleVideo = mediaItems.size == 1 && mediaItems.first().isVideo && !mediaItems.first().isAudio
         if (isSingleVideo) {
             setupSingleVideoMode()
         } else {
@@ -139,10 +196,17 @@ class DownloadBottomSheetFragment : BottomSheetDialogFragment() {
             } else {
                 item.title
             }
+            val targetUrl = when (selectedQuality) {
+                "720P" -> item.hdUrl ?: item.url
+                "480P" -> item.sdUrl ?: item.url
+                else -> item.url
+            }
             val finalItem = item.copy(
                 title = baseTitle,
+                url = targetUrl,
                 isVideo = !isAudio,
                 isAudio = isAudio,
+                quality = selectedQuality,
                 sizeFormatted = when (selectedQuality) {
                     "720P" -> "5.19MB"
                     "480P" -> "0.94MB"
@@ -150,14 +214,7 @@ class DownloadBottomSheetFragment : BottomSheetDialogFragment() {
                 }
             )
 
-            Toast.makeText(
-                requireContext(),
-                "Downloading ${finalItem.title} ($selectedQuality)...",
-                Toast.LENGTH_SHORT
-            ).show()
-
-            onDownloadClickListener?.invoke(listOf(finalItem))
-            dismiss()
+            executeDownloadWithAds(listOf(finalItem))
         }
     }
 
@@ -239,15 +296,57 @@ class DownloadBottomSheetFragment : BottomSheetDialogFragment() {
                 return@setOnClickListener
             }
 
-            Toast.makeText(
-                requireContext(),
-                "Downloading ${checked.size} ${if (checked.size == 1) "file" else "files"}...",
-                Toast.LENGTH_SHORT
-            ).show()
-
-            onDownloadClickListener?.invoke(checked)
-            dismiss()
+            executeDownloadWithAds(checked)
         }
+    }
+
+    private fun verifyNetworkAndProceed(onProceed: () -> Unit) {
+        val ctx = context ?: return
+        val isWifiOnly = DownloadHelper.isDownloadWifiOnly(ctx)
+        if (isWifiOnly && !DownloadHelper.isWifiConnected(ctx)) {
+            AlertDialog.Builder(ctx)
+                .setTitle("Wi-Fi is off")
+                .setMessage("Do you want to continue with mobile data?")
+                .setPositiveButton("Continue") { _, _ ->
+                    DownloadHelper.setDownloadWifiOnly(ctx, false)
+                    onProceed()
+                }
+                .setNegativeButton("Cancel", null)
+                .show()
+            return
+        }
+        onProceed()
+    }
+
+    private fun executeDownloadWithAds(items: List<MediaItem>) {
+        verifyNetworkAndProceed {
+            val act = activity
+            val hasVideo = items.any { it.isVideo }
+            if (hasVideo && act != null) {
+                AdsManager.onRewardedUserAction(
+                    activity = act,
+                    onRewardEarned = {},
+                    onAdClosed = {
+                        triggerDownload(items)
+                    }
+                )
+            } else {
+                triggerDownload(items)
+            }
+        }
+    }
+
+    private fun triggerDownload(items: List<MediaItem>) {
+        if (!isAdded) return
+        val count = items.size
+        Toast.makeText(
+            requireContext(),
+            if (count == 1) "Downloading ${items.first().title}..." else "Downloading $count files...",
+            Toast.LENGTH_SHORT
+        ).show()
+
+        onDownloadClickListener?.invoke(items)
+        dismiss()
     }
 
     private fun updateDownloadButtonState() {
@@ -276,6 +375,19 @@ class DownloadBottomSheetFragment : BottomSheetDialogFragment() {
         ): DownloadBottomSheetFragment {
             return DownloadBottomSheetFragment().apply {
                 setMediaList(items, onDownload)
+            }
+        }
+
+        fun newInstanceLoading(
+            title: String = "Fetching media...",
+            subtitle: String = "Please wait while we retrieve the download link",
+            onDownload: (List<MediaItem>) -> Unit
+        ): DownloadBottomSheetFragment {
+            return DownloadBottomSheetFragment().apply {
+                this.onDownloadClickListener = onDownload
+                this.isInitialLoading = true
+                this.initialLoadingTitle = title
+                this.initialLoadingSubtitle = subtitle
             }
         }
     }

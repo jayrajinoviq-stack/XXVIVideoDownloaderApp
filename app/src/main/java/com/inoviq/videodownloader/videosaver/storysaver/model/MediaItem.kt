@@ -15,5 +15,8 @@ data class MediaItem(
     var downloadProgress: Int = 0,
     var isDownloaded: Boolean = false,
     var isPaused: Boolean = false,
-    var localPath: String? = null
+    var localPath: String? = null,
+    val hdUrl: String? = null,
+    val sdUrl: String? = null,
+    var quality: String? = null
 ) : Serializable

@@ -27,6 +27,7 @@ import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.inoviq.videodownloader.videosaver.storysaver.R
 import com.inoviq.videodownloader.videosaver.storysaver.adapter.DownloadedFilesAdapter
+import com.inoviq.videodownloader.videosaver.storysaver.ads.AdManager
 import com.inoviq.videodownloader.videosaver.storysaver.databinding.DialogDeleteConfirmationBinding
 import com.inoviq.videodownloader.videosaver.storysaver.databinding.DialogMediaPreviewBinding
 import com.inoviq.videodownloader.videosaver.storysaver.databinding.FragmentFilesBinding
@@ -120,6 +121,7 @@ class FilesFragment : BottomSheetDialogFragment() {
                 allFiles.removeAt(idx)
                 if (_binding != null) updateFilter()
             }
+            context?.let { DownloadStore.removeDownloadedItem(it, item) }
         }
 
         override fun onDownloadCancelled(item: MediaItem) {
@@ -156,6 +158,10 @@ class FilesFragment : BottomSheetDialogFragment() {
         setupMultiSelectActions()
         DownloadProgressManager.registerListener(downloadProgressListener)
         loadPersistedFiles()
+
+        activity?.let { act ->
+            AdManager.loadSmallNativeAd(act, binding.flNativeAdSmall)
+        }
 
         dialog?.setOnKeyListener { _, keyCode, event ->
             if (keyCode == KeyEvent.KEYCODE_BACK && event.action == KeyEvent.ACTION_UP) {
@@ -360,7 +366,7 @@ class FilesFragment : BottomSheetDialogFragment() {
     private fun updateFilter() {
         val newFiltered = when (currentFilter) {
             "ALL" -> allFiles.toList()
-            "VIDEOS" -> allFiles.filter { it.isVideo }
+            "VIDEOS" -> allFiles.filter { it.isVideo && !it.isAudio }
             "IMAGES" -> allFiles.filter { !it.isVideo && !it.isAudio }
             "AUDIOS" -> allFiles.filter { it.isAudio }
             else -> allFiles.toList()

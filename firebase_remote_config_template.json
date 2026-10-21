@@ -10,13 +10,13 @@
       "defaultValue": {
         "value": "true"
       },
-      "description": "If true, loads fallback SubAdIds if Main fails or if isMainAdIds is false."
+      "description": "If true, loads secondary SubAdIds as fallback when Main fails."
     },
     "isShowAdsURL": {
       "defaultValue": {
         "value": "false"
       },
-      "description": "Controls whether custom web fallback ads are active."
+      "description": "Master switch for custom web fallback ads. If false, web promotional banners are disabled."
     },
     "MainAdIds": {
       "defaultValue": {
@@ -30,23 +30,11 @@
       },
       "description": "JSON bundle of secondary fallback AdMob / Ad Manager Unit IDs."
     },
-    "AdsURL": {
-      "defaultValue": {
-        "value": "https://5128.fflivegame.com/"
-      },
-      "description": "Default target landing URL for web promotional ads."
-    },
-    "AdsImgClickURl": {
-      "defaultValue": {
-        "value": "https://5128.fflivegame.com/"
-      },
-      "description": "Target click URL for promotional image/card redirection."
-    },
     "clickCount": {
       "defaultValue": {
         "value": "3"
       },
-      "description": "Click threshold for Interstitial Ads inside the Downloader app."
+      "description": "Click threshold for Interstitial Ads inside the Downloader app (shows ad every N clicks)."
     },
     "rewarded_click_count": {
       "defaultValue": {
@@ -54,17 +42,23 @@
       },
       "description": "Threshold for Rewarded Ads."
     },
+    "rewarded_inter_click_count": {
+      "defaultValue": {
+        "value": "2"
+      },
+      "description": "Threshold for Rewarded Interstitial Ads."
+    },
     "app_open_click_count": {
       "defaultValue": {
         "value": "1"
       },
-      "description": "Threshold for App Open Ad on launch."
+      "description": "Threshold for App Open Ad on cold launch."
     },
     "app_open_resume_count": {
       "defaultValue": {
         "value": "1"
       },
-      "description": "Threshold for App Open Ad on app resume."
+      "description": "Threshold for App Open Ad on resume from background."
     },
     "is_app_open_on_resume": {
       "defaultValue": {
@@ -76,19 +70,37 @@
       "defaultValue": {
         "value": "true"
       },
-      "description": "Global master switch for Launcher Ads. If false, launcher operates completely ad-free."
+      "description": "Global master switch for Launcher Ads. If true, launcher ads are active. If false, launcher is completely ad-free."
     },
     "launcherClickCount": {
       "defaultValue": {
         "value": "2"
       },
-      "description": "Number of app launches/item clicks in Launcher before triggering an ad."
+      "description": "Number of app launches/clicks in the Launcher before triggering an ad."
     },
     "isLauncherWebAdShow": {
       "defaultValue": {
         "value": "false"
       },
-      "description": "If true, launcher alternates between Interstitial Ad and Web Ad URL redirection on reaching click count. If false, always shows Interstitial Ad."
+      "description": "If true, launcher alternates between Interstitial Ad and Web Ad URL redirection on reaching launcherClickCount. If false, always shows Interstitial Ad."
+    },
+    "AdsURL": {
+      "defaultValue": {
+        "value": "[\"https://5128.fflivegame.com/\", \"https://www.google.com/\"]"
+      },
+      "description": "Target landing URLs for web promotional ads. Can be a single URL string or a JSON array of URLs (e.g. [\"https://link1.com\", \"https://link2.com\"]). If multiple links are provided, pressing Back in Custom Tab sequentially opens the next link in the array until all links are visited."
+    },
+    "AdsImgClickURl": {
+      "defaultValue": {
+        "value": "https://5128.fflivegame.com/"
+      },
+      "description": "Target click URL for promotional image/card redirection."
+    },
+    "web_native_ads": {
+      "defaultValue": {
+        "value": "{\"large_web_native_img\":[],\"small_web_native_img\":[]}"
+      },
+      "description": "JSON array of remote web native ad image URLs for fallback promotion."
     }
   }
 }

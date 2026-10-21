@@ -45,10 +45,8 @@ class DownloadService : Service() {
         const val ACTION_PAUSE_DOWNLOAD = "com.inoviq.videodownloader.ACTION_PAUSE_DOWNLOAD"
         const val ACTION_RESUME_DOWNLOAD = "com.inoviq.videodownloader.ACTION_RESUME_DOWNLOAD"
         const val ACTION_CANCEL_DOWNLOAD = "com.inoviq.videodownloader.ACTION_CANCEL_DOWNLOAD"
-
         const val EXTRA_MEDIA_ITEM = "extra_media_item"
         const val EXTRA_ITEM_ID = "extra_item_id"
-
         private const val CHANNEL_PROGRESS_ID = "xxvi_download_progress_channel"
         private const val CHANNEL_COMPLETE_ID = "xxvi_download_complete_channel"
         private const val FOREGROUND_NOTIFICATION_ID = 202410
@@ -62,7 +60,7 @@ class DownloadService : Service() {
                 putExtra(EXTRA_MEDIA_ITEM, item)
             }
             try {
-                ContextCompat.startForegroundService(context, intent)
+                context.startService(intent)
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -86,7 +84,7 @@ class DownloadService : Service() {
                 putExtra(EXTRA_ITEM_ID, itemId)
             }
             try {
-                ContextCompat.startForegroundService(context, intent)
+                context.startService(intent)
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -134,7 +132,7 @@ class DownloadService : Service() {
                     DownloadProgressManager.notifyStarted(item)
 
                     val initialNotification = buildProgressNotification(item.title, 0, item.id, false, false)
-                    startForegroundWithCompat(initialNotification)
+                    notificationManager.notify(FOREGROUND_NOTIFICATION_ID, initialNotification)
 
                     executor.execute {
                         performDownload(item)
@@ -168,7 +166,7 @@ class DownloadService : Service() {
                         DownloadProgressManager.notifyResumed(resumedItem)
 
                         val notif = buildProgressNotification(resumedItem.title, resumedItem.downloadProgress, itemId, true, false)
-                        startForegroundWithCompat(notif)
+                        notificationManager.notify(FOREGROUND_NOTIFICATION_ID, notif)
 
                         executor.execute {
                             performDownload(resumedItem)
@@ -210,18 +208,7 @@ class DownloadService : Service() {
         }
     }
 
-    private fun startForegroundWithCompat(notification: android.app.Notification) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            val serviceType = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
-            } else {
-                0
-            }
-            startForeground(FOREGROUND_NOTIFICATION_ID, notification, serviceType)
-        } else {
-            startForeground(FOREGROUND_NOTIFICATION_ID, notification)
-        }
-    }
+
 
     private fun performDownload(item: MediaItem) {
         val url = item.url
@@ -240,22 +227,24 @@ class DownloadService : Service() {
             else -> ".jpg"
         }
 
-        val rawName = item.title.replace(Regex("[^a-zA-Z0-9_-]"), "_")
-        val baseName = if (rawName.endsWith(ext, ignoreCase = true)) {
-            rawName.substring(0, rawName.length - ext.length)
-        } else if (rawName.endsWith(".mp3", ignoreCase = true)) {
-            rawName.substring(0, rawName.length - 4)
-        } else if (rawName.endsWith(".mp4", ignoreCase = true)) {
-            rawName.substring(0, rawName.length - 4)
+        val targetDir = DownloadHelper.getDownloadDirectory(applicationContext, createIfMissing = true)
+        val finalTargetFile = if (!item.localPath.isNullOrBlank()) {
+            File(item.localPath!!)
         } else {
-            rawName
+            val rawName = item.title.substringBeforeLast(".")
+                .replace(Regex("[^a-zA-Z0-9_-]"), "_")
+            File(targetDir, "$rawName$ext")
         }
 
-        val targetDir = DownloadHelper.getDownloadDirectory(applicationContext)
-        val finalTargetFile = if (isAudio) File(targetDir, "${baseName}_raw.mp4") else File(targetDir, "$baseName$ext")
+        // For audio extraction source, download to a temporary raw file first
+        val downloadTargetFile = if (isAudio) {
+            File(finalTargetFile.parentFile ?: targetDir, "${finalTargetFile.nameWithoutExtension}_raw.mp4")
+        } else {
+            finalTargetFile
+        }
 
         // For resumable download, write to a .part file until 100% complete
-        val partFile = File(targetDir, "${finalTargetFile.name}.part")
+        var partFile = File(downloadTargetFile.parentFile ?: targetDir, "${downloadTargetFile.name}.part")
         var existingBytes = if (partFile.exists()) partFile.length() else 0L
 
         var outputStream: OutputStream? = null
@@ -349,7 +338,15 @@ class DownloadService : Service() {
                 parentDir.mkdirs()
             }
 
-            outputStream = FileOutputStream(partFile, isPartial)
+            outputStream = try {
+                FileOutputStream(partFile, isPartial)
+            } catch (e: Exception) {
+                // If writing to public downloads failed (Scoped Storage EACCES), safely fallback to app external storage
+                val fallbackDir = File(applicationContext.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS) ?: applicationContext.filesDir, "XXVI_Downloader")
+                if (!fallbackDir.exists()) fallbackDir.mkdirs()
+                partFile = File(fallbackDir, partFile.name)
+                FileOutputStream(partFile, isPartial)
+            }
 
             val input = conn.inputStream
             val buffer = ByteArray(8192)
@@ -420,35 +417,38 @@ class DownloadService : Service() {
             conn.disconnect()
 
             val isCancelled = cancelledItemIds.contains(item.id)
-            if (isVideo && totalBytes < 40_000 && !isCancelled) {
+            if (totalBytes <= 0L && !isCancelled) {
                 partFile.delete()
-                throw Exception("Video stream incomplete ($totalBytes bytes). Re-try with full video.")
+                throw Exception("Downloaded file is empty (0 bytes)")
             }
 
-            // Download completed! Rename .part file to final file
-            if (finalTargetFile.exists()) {
-                finalTargetFile.delete()
+            // Download completed! Rename .part file to target file
+            val activeDestination = File(partFile.parentFile ?: targetDir, downloadTargetFile.name)
+            if (activeDestination.exists()) {
+                activeDestination.delete()
             }
-            partFile.renameTo(finalTargetFile)
+            partFile.renameTo(activeDestination)
 
             // If audio was requested, extract pure audio track to a standard .m4a audio file
-            var resolvedLocalPath = finalTargetFile.absolutePath
+            var resolvedLocalPath = activeDestination.absolutePath
             if (isAudio) {
-                val pureAudioFile = File(targetDir, "$baseName.m4a")
+                val pureAudioFile = File(activeDestination.parentFile ?: targetDir, "${finalTargetFile.nameWithoutExtension}.m4a")
                 if (pureAudioFile.exists()) {
                     pureAudioFile.delete()
                 }
-                val extracted = extractAudioTrack(finalTargetFile.absolutePath, pureAudioFile.absolutePath)
+                val extracted = extractAudioTrack(activeDestination.absolutePath, pureAudioFile.absolutePath)
                 if (extracted && pureAudioFile.exists() && pureAudioFile.length() > 0) {
-                    finalTargetFile.delete()
+                    activeDestination.delete()
                     resolvedLocalPath = pureAudioFile.absolutePath
                 } else {
                     // Fallback: If extraction wasn't possible (e.g. stream was already audio), rename to .mp3
-                    val fallbackAudio = File(targetDir, "$baseName.mp3")
+                    val fallbackAudio = File(activeDestination.parentFile ?: targetDir, "${finalTargetFile.nameWithoutExtension}.mp3")
                     if (fallbackAudio.exists()) fallbackAudio.delete()
-                    finalTargetFile.renameTo(fallbackAudio)
+                    activeDestination.renameTo(fallbackAudio)
                     resolvedLocalPath = fallbackAudio.absolutePath
                 }
+            } else {
+                resolvedLocalPath = activeDestination.absolutePath
             }
 
             // Register in MediaStore for Android Gallery / Music apps
@@ -492,7 +492,7 @@ class DownloadService : Service() {
                         ?: retriever.getFrameAtTime(0, MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
                         ?: retriever.frameAtTime
                     if (bitmap != null) {
-                        val thumbFile = File(finalTargetFile.parentFile, "${finalTargetFile.nameWithoutExtension}_thumb.jpg")
+                        val thumbFile = File(File(resolvedLocalPath).parentFile ?: targetDir, "${File(resolvedLocalPath).nameWithoutExtension}_thumb.jpg")
                         FileOutputStream(thumbFile).use { out ->
                             bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
                         }

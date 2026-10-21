@@ -13,16 +13,12 @@ import com.inoviq.videodownloader.videosaver.storysaver.R
 import com.inoviq.videodownloader.videosaver.storysaver.adapter.HowToWorkAdapter
 import com.inoviq.videodownloader.videosaver.storysaver.databinding.ActivityHowToWorkBinding
 
-class HowToWorkActivity : AppCompatActivity() {
+class HowToWorkActivity : BaseActivity() {
 
     private lateinit var binding: ActivityHowToWorkBinding
     private lateinit var adapter: HowToWorkAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT),
-            navigationBarStyle = SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
-        )
         super.onCreate(savedInstanceState)
         binding = ActivityHowToWorkBinding.inflate(layoutInflater)
         setContentView(binding.root)
@@ -53,7 +49,7 @@ class HowToWorkActivity : AppCompatActivity() {
 
     private fun setupListeners() {
         binding.btnHowToWorkBack.setOnClickListener {
-            finish()
+            handleBackPress()
         }
 
         binding.btnHowToWorkAction.setOnClickListener {
@@ -61,7 +57,7 @@ class HowToWorkActivity : AppCompatActivity() {
             if (current < 3) {
                 binding.vpHowToWork.currentItem = current + 1
             } else {
-                finish()
+                handleBackPress()
             }
         }
     }

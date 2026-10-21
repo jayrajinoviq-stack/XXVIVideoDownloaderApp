@@ -56,7 +56,8 @@
 
     <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="0dp"
+        android:layout_weight="1">
 
         <!-- Bookmarks RecyclerView -->
         <androidx.recyclerview.widget.RecyclerView
@@ -79,5 +80,13 @@
             android:textSize="15sp"
             android:visibility="gone" />
     </FrameLayout>
+
+    <!-- Bottom Native Ad Large -->
+    <FrameLayout
+        android:id="@+id/flNativeAdLarge"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:visibility="gone" />
 
 </LinearLayout>

@@ -28,17 +28,58 @@ object DownloadHelper {
 
     /**
      * Returns the dedicated download folder /storage/emulated/0/Download/XXVI_Downloader.
-     * If the folder already exists, it is reused and not recreated.
+     * - If [createIfMissing] is false, returns the target File path without creating it.
+     * - If [createIfMissing] is true, creates the folder if it does not exist yet.
+     * - If the folder already exists (e.g. from a previous app installation), it is reused directly.
      */
-    fun getDownloadDirectory(context: Context): File {
+    fun getDownloadDirectory(context: Context, createIfMissing: Boolean = true): File {
         val pubDownloadDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
         val targetDir = File(pubDownloadDir, "XXVI_Downloader")
-        if (!targetDir.exists()) {
+        if (createIfMissing && !targetDir.exists()) {
             try {
                 targetDir.mkdirs()
             } catch (_: Exception) {}
         }
+        // Fallback check if public dir cannot be created or written
+        if (createIfMissing && !targetDir.exists()) {
+            try {
+                val fallback = File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS) ?: context.filesDir, "XXVI_Downloader")
+                if (!fallback.exists()) fallback.mkdirs()
+                return fallback
+            } catch (_: Exception) {}
+        }
         return targetDir
+    }
+
+    /**
+     * Checks whether the XXVI_Downloader folder already exists on disk.
+     */
+    fun isDownloadDirectoryCreated(context: Context): Boolean {
+        val pubDownloadDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+        val targetDir = File(pubDownloadDir, "XXVI_Downloader")
+        if (targetDir.exists() && targetDir.isDirectory) return true
+        val fallback = File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS) ?: context.filesDir, "XXVI_Downloader")
+        return fallback.exists() && fallback.isDirectory
+    }
+
+    fun isDownloadWifiOnly(context: Context): Boolean {
+        return context.getSharedPreferences("app_settings", Context.MODE_PRIVATE)
+            .getBoolean("pref_download_wifi_only", false)
+    }
+
+    fun setDownloadWifiOnly(context: Context, enabled: Boolean) {
+        context.getSharedPreferences("app_settings", Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean("pref_download_wifi_only", enabled)
+            .apply()
+    }
+
+    fun isWifiConnected(context: Context): Boolean {
+        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? android.net.ConnectivityManager ?: return false
+        val activeNet = cm.activeNetwork ?: return false
+        val caps = cm.getNetworkCapabilities(activeNet) ?: return false
+        return caps.hasTransport(android.net.NetworkCapabilities.TRANSPORT_WIFI) &&
+                caps.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET)
     }
 
     fun derivePlatformPrefix(url: String): String {
@@ -126,8 +167,10 @@ object DownloadHelper {
                 cleanUrl.contains(".mp4") ||
                 cleanUrl.contains(".webm"))
         val ext = when {
-            isAudio -> ".mp3"
+            isAudio -> if (customName?.endsWith(".mp3", ignoreCase = true) == true) ".mp3" else ".m4a"
             isVideo -> ".mp4"
+            cleanUrl.contains(".png", ignoreCase = true) -> ".png"
+            cleanUrl.contains(".webp", ignoreCase = true) -> ".webp"
             else -> ".jpg"
         }
 

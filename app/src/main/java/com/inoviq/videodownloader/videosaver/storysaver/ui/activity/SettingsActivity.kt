@@ -20,6 +20,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import com.inoviq.videodownloader.videosaver.storysaver.ads.AdManager
+import com.inoviq.videodownloader.videosaver.storysaver.ads.AdsManager
 import com.inoviq.videodownloader.videosaver.storysaver.databinding.ActivitySettingsBinding
 import com.inoviq.videodownloader.videosaver.storysaver.databinding.DialogClearHistoryBinding
 import com.inoviq.videodownloader.videosaver.storysaver.databinding.DialogSearchEngineBinding
@@ -28,21 +30,11 @@ import com.inoviq.videodownloader.videosaver.storysaver.utils.BrowserHistoryMana
 import com.inoviq.videodownloader.videosaver.storysaver.utils.DownloadHelper
 import com.inoviq.videodownloader.videosaver.storysaver.utils.SearchEngineManager
 
-class SettingsActivity : AppCompatActivity() {
+class SettingsActivity : BaseActivity() {
 
     private lateinit var binding: ActivitySettingsBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.light(
-                Color.TRANSPARENT,
-                Color.TRANSPARENT
-            ),
-            navigationBarStyle = SystemBarStyle.light(
-                Color.TRANSPARENT,
-                Color.TRANSPARENT
-            )
-        )
         super.onCreate(savedInstanceState)
         binding = ActivitySettingsBinding.inflate(layoutInflater)
         setContentView(binding.root)
@@ -50,6 +42,14 @@ class SettingsActivity : AppCompatActivity() {
         setupWindowInsets()
         setupListeners()
         updateEngineLabel()
+
+        // Bottom Native Small Ad
+        AdManager.loadSmallNativeAd(this, binding.flNativeAdSmall)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        binding.switchWifiOnly.isChecked = DownloadHelper.isDownloadWifiOnly(this)
     }
 
     private fun setupWindowInsets() {
@@ -74,15 +74,21 @@ class SettingsActivity : AppCompatActivity() {
 
     private fun setupListeners() {
         binding.btnSettingsBack.setOnClickListener {
-            finish()
+            handleBackPress()
         }
 
-        // Show actual dedicated download location path
-        val downloadDir = DownloadHelper.getDownloadDirectory(this)
+        // Show actual dedicated download location path without creating empty folder prematurely
+        val downloadDir = DownloadHelper.getDownloadDirectory(this, createIfMissing = false)
         binding.tvDownloadLocationPath.text = downloadDir.absolutePath
 
         binding.cardDownloadLocation.setOnClickListener {
             openDownloadLocation()
+        }
+
+        // Download With Wi-Fi Only Switch
+        binding.switchWifiOnly.isChecked = DownloadHelper.isDownloadWifiOnly(this)
+        binding.switchWifiOnly.setOnCheckedChangeListener { _, isChecked ->
+            DownloadHelper.setDownloadWifiOnly(this, isChecked)
         }
 
         binding.cardSearchEngine.setOnClickListener {
@@ -94,17 +100,18 @@ class SettingsActivity : AppCompatActivity() {
                 title = "Clear Cache",
                 message = "Would you like to clear browser cache and cookies?"
             ) {
-                try {
-                    WebView(this).clearCache(true)
-                    CookieManager.getInstance().removeAllCookies(null)
-                } catch (_: Exception) {}
-                Toast.makeText(this, "Browser cache cleared successfully", Toast.LENGTH_SHORT).show()
+                AdsManager.onRewardedUserAction(
+                    activity = this,
+                    onRewardEarned = {},
+                    onAdClosed = {
+                        try {
+                            WebView(this).clearCache(true)
+                            CookieManager.getInstance().removeAllCookies(null)
+                        } catch (_: Exception) {}
+                        Toast.makeText(this, "Browser cache cleared successfully", Toast.LENGTH_SHORT).show()
+                    }
+                )
             }
-        }
-
-        binding.switchRecentlyUsed.isChecked = BrowserHistoryManager.isRecentlyUsedEnabled(this)
-        binding.switchRecentlyUsed.setOnCheckedChangeListener { _, isChecked ->
-            BrowserHistoryManager.setRecentlyUsedEnabled(this, isChecked)
         }
 
         binding.cardClearHistory.setOnClickListener {
@@ -112,13 +119,21 @@ class SettingsActivity : AppCompatActivity() {
                 title = "Clear History",
                 message = "Would you like to clear all browsing history?"
             ) {
-                BrowserHistoryManager.clearAll(this)
-                Toast.makeText(this, "Browsing history cleared", Toast.LENGTH_SHORT).show()
+                AdsManager.onRewardedUserAction(
+                    activity = this,
+                    onRewardEarned = {},
+                    onAdClosed = {
+                        BrowserHistoryManager.clearAll(this)
+                        Toast.makeText(this, "Browsing history cleared", Toast.LENGTH_SHORT).show()
+                    }
+                )
             }
         }
 
         binding.cardHowToWork.setOnClickListener {
-            startActivity(Intent(this, HowToWorkActivity::class.java))
+            AdManager.showInterstitial(this) {
+                startActivity(Intent(this, HowToWorkActivity::class.java))
+            }
         }
 
         binding.cardPrivacyPolicy.setOnClickListener {
@@ -194,36 +209,41 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private fun openDownloadLocation() {
-        val dir = DownloadHelper.getDownloadDirectory(this)
+        val wasAlreadyCreated = DownloadHelper.isDownloadDirectoryCreated(this)
+        val dir = DownloadHelper.getDownloadDirectory(this, createIfMissing = true)
+        binding.tvDownloadLocationPath.text = dir.absolutePath
         var opened = false
 
-        // 1. Try launching DownloadManager VIEW_DOWNLOADS
+        // 1. Try launching system file manager / viewer pointing to the downloads folder
         try {
-            val dmIntent = Intent(DownloadManager.ACTION_VIEW_DOWNLOADS)
-            startActivity(dmIntent)
+            val uri = FileProvider.getUriForFile(this, "${packageName}.fileprovider", dir)
+            val folderIntent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, "*/*")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            startActivity(folderIntent)
             opened = true
         } catch (_: Exception) {}
 
-        // 2. Try launching system file manager / viewer pointing to the downloads folder
+        // 2. Try launching DownloadManager VIEW_DOWNLOADS
         if (!opened) {
             try {
-                val uri = FileProvider.getUriForFile(this, "${packageName}.fileprovider", dir)
-                val folderIntent = Intent(Intent.ACTION_VIEW).apply {
-                    setDataAndType(uri, "*/*")
-                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                }
-                startActivity(folderIntent)
+                val dmIntent = Intent(DownloadManager.ACTION_VIEW_DOWNLOADS)
+                startActivity(dmIntent)
                 opened = true
             } catch (_: Exception) {}
         }
 
-        if (opened) {
-            Toast.makeText(this, "Location: ${dir.absolutePath}", Toast.LENGTH_SHORT).show()
+        val statusMsg = if (wasAlreadyCreated) {
+            "Download folder is ready:\n\n${dir.absolutePath}\n\nAll downloaded videos, audio, and images are saved here."
         } else {
-            showCustomInfoDialog(
-                "Download Location",
-                "Your downloaded videos and images are saved in:\n\n${dir.absolutePath}\n\nYou can access them directly using any File Manager app or Gallery."
-            )
+            "Download folder created successfully:\n\n${dir.absolutePath}\n\nAll future downloads will be saved here."
+        }
+
+        if (opened) {
+            Toast.makeText(this, if (wasAlreadyCreated) "Opening: ${dir.name}" else "Created & opened: ${dir.name}", Toast.LENGTH_SHORT).show()
+        } else {
+            showCustomInfoDialog("Download Location", statusMsg)
         }
     }
 

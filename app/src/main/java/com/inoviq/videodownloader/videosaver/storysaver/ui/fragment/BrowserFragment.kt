@@ -9,6 +9,8 @@ import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.LayoutInflater
@@ -38,6 +40,7 @@ import com.inoviq.videodownloader.videosaver.storysaver.databinding.FragmentBrow
 import com.inoviq.videodownloader.videosaver.storysaver.databinding.ItemOverlayRecentBinding
 import com.inoviq.videodownloader.videosaver.storysaver.databinding.PopupBrowserMenuBinding
 import com.inoviq.videodownloader.videosaver.storysaver.model.MediaItem
+import com.inoviq.videodownloader.videosaver.storysaver.ads.AdManager
 import com.inoviq.videodownloader.videosaver.storysaver.ui.activity.MainActivity
 import com.inoviq.videodownloader.videosaver.storysaver.ui.activity.SettingsActivity
 import com.inoviq.videodownloader.videosaver.storysaver.ui.dialogs.DownloadBottomSheetFragment
@@ -136,8 +139,9 @@ class BrowserFragment : Fragment() {
             false
         }
 
-        val density = resources.displayMetrics.density
-        binding.flFeedbackBottomContainer.setPadding(0, (6 * density).toInt(), 0, (10 * density).toInt())
+        activity?.let { act ->
+            AdManager.loadLargeNativeAd(act, binding.flHomeNativeAdLarge)
+        }
 
         // If the initial tab points to a website (e.g. Instagram, Facebook),
         // restore it directly into WebView without showing the Home screen.
@@ -267,7 +271,14 @@ class BrowserFragment : Fragment() {
             if (isSearchOverlayOpen) {
                 exitSearchOverlay(restorePreviousUrl = true)
             }
-            startActivity(Intent(requireContext(), SettingsActivity::class.java))
+            val act = activity
+            if (act != null) {
+                AdManager.showInterstitial(act) {
+                    startActivity(Intent(requireContext(), SettingsActivity::class.java))
+                }
+            } else {
+                startActivity(Intent(requireContext(), SettingsActivity::class.java))
+            }
         }
 
         // More Menu Popup (Images 1 and 2)
@@ -447,7 +458,14 @@ class BrowserFragment : Fragment() {
 
             itemBinding.root.setOnClickListener {
                 exitSearchOverlay(restorePreviousUrl = false)
-                loadUrl(item.url)
+                val act = activity
+                if (act != null) {
+                    AdManager.showInterstitial(act) {
+                        loadUrl(item.url)
+                    }
+                } else {
+                    loadUrl(item.url)
+                }
             }
 
             b.llOverlayRecentRow.addView(itemBinding.root)
@@ -616,7 +634,12 @@ class BrowserFragment : Fragment() {
         // 1. New Tab
         popupBinding.menuItemNewTab.setOnClickListener {
             popupWindow.dismiss()
-            (activity as? MainActivity)?.addNewTab()
+            val act = activity as? MainActivity
+            if (act != null) {
+                AdManager.showInterstitial(act) {
+                    act.addNewTab()
+                }
+            }
         }
 
         // 2. Share
@@ -642,7 +665,12 @@ class BrowserFragment : Fragment() {
         // 3. Downloads (Image 2)
         popupBinding.menuItemDownloads.setOnClickListener {
             popupWindow.dismiss()
-            (activity as? MainActivity)?.showDownloads()
+            val act = activity as? MainActivity
+            if (act != null) {
+                AdManager.showInterstitial(act) {
+                    act.showDownloads()
+                }
+            }
         }
 
         // 4. History
@@ -708,11 +736,19 @@ class BrowserFragment : Fragment() {
         shortcutsAdapter = HomeScreenShortcutAdapter(
             homeShortcutsList,
             onShortcutClick = { shortcut ->
-                if (HomeScreenShortcutManager.isWhatsApp(shortcut)) {
-                    val intent = Intent(requireContext(), WhatsAppStatusActivity::class.java)
-                    startActivity(intent)
+                val act = activity
+                val proceed = {
+                    if (HomeScreenShortcutManager.isWhatsApp(shortcut)) {
+                        val intent = Intent(requireContext(), WhatsAppStatusActivity::class.java)
+                        startActivity(intent)
+                    } else {
+                        performSearchOrNavigate(shortcut.url)
+                    }
+                }
+                if (act != null) {
+                    AdManager.showInterstitial(act, proceed)
                 } else {
-                    performSearchOrNavigate(shortcut.url)
+                    proceed()
                 }
             },
             onAddClick = {
@@ -739,44 +775,6 @@ class BrowserFragment : Fragment() {
 
         refreshRecentlyUsedWebsites()
 
-        // Feedback Button
-        binding.btnFeedback.setOnClickListener {
-            if (::shortcutsAdapter.isInitialized && shortcutsAdapter.isEditMode) {
-                shortcutsAdapter.setEditMode(false)
-                return@setOnClickListener
-            }
-            val ctx = context ?: return@setOnClickListener
-            val dialog = Dialog(ctx)
-            dialog.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE)
-            val alertBinding = com.inoviq.videodownloader.videosaver.storysaver.databinding.DialogCustomAlertBinding.inflate(layoutInflater)
-            dialog.setContentView(alertBinding.root)
-            dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
-            dialog.window?.setLayout((320 * resources.displayMetrics.density).toInt(), ViewGroup.LayoutParams.WRAP_CONTENT)
-
-            alertBinding.tvAlertTitle.text = "Feedback & Questions"
-            alertBinding.tvAlertMsg.text = "Have a feature request, question, or need assistance? Reach out to our support team anytime at support@xxvi.app"
-            alertBinding.btnAlertNegative.visibility = View.VISIBLE
-            alertBinding.btnAlertNegative.text = "CANCEL"
-            alertBinding.btnAlertPositive.text = "SEND EMAIL"
-
-            alertBinding.btnAlertNegative.setOnClickListener {
-                dialog.dismiss()
-            }
-
-            alertBinding.btnAlertPositive.setOnClickListener {
-                dialog.dismiss()
-                val intent = Intent(Intent.ACTION_SENDTO).apply {
-                    data = android.net.Uri.parse("mailto:support@xxvi.app?subject=XXVI%20Feedback")
-                }
-                try {
-                    startActivity(intent)
-                } catch (_: Exception) {
-                    Toast.makeText(ctx, "Email app not found", Toast.LENGTH_SHORT).show()
-                }
-            }
-
-            dialog.show()
-        }
     }
 
     private fun showAddShortcutDialog() {
@@ -955,6 +953,13 @@ class BrowserFragment : Fragment() {
                 fun onMediaDetected(url: String, type: String, title: String, thumb: String) {
                     activity?.runOnUiThread {
                         addDetectedMedia(title, url, type.equals("video", true), thumb)
+                    }
+                }
+
+                @JavascriptInterface
+                fun onMediaDetectedWithQuality(url: String, type: String, title: String, thumb: String, hdUrl: String, sdUrl: String) {
+                    activity?.runOnUiThread {
+                        addDetectedMedia(title, url, type.equals("video", true), thumb, hdUrl.ifBlank { null }, sdUrl.ifBlank { null })
                     }
                 }
             },
@@ -1237,15 +1242,81 @@ class BrowserFragment : Fragment() {
         }
     }
 
+    private fun executeDownloadItems(selectedItems: List<MediaItem>) {
+        if (!isAdded) return
+        val ctx = context ?: return
+        selectedItems.forEach { selected ->
+            var actualUrl = selected.url
+            if (actualUrl.isBlank() || actualUrl.startsWith("blob:")) {
+                actualUrl = (lastInterceptedVideoUrl ?: "").ifBlank {
+                    detectedMediaList.firstOrNull { it.isVideo == selected.isVideo }?.url ?: ""
+                }
+            }
+            if (actualUrl.isBlank()) return@forEach
+
+            val downloadedItem = DownloadHelper.downloadMedia(
+                context = ctx,
+                url = actualUrl,
+                type = if (selected.isAudio) "audio" else if (selected.isVideo) "video" else "image",
+                customName = selected.title,
+                thumbUrl = selected.thumbnailUrl
+            ) { updatedItem ->
+                activity?.runOnUiThread {
+                    onMediaDownloaded?.invoke(listOf(updatedItem))
+                }
+            }
+
+            if (downloadedItem != null) {
+                onMediaDownloaded?.invoke(listOf(downloadedItem))
+                addDetectedMedia(downloadedItem.title, actualUrl, downloadedItem.isVideo, selected.thumbnailUrl)
+            }
+        }
+
+        val rootV = _binding?.root
+        if (rootV != null) {
+            val message = if (selectedItems.size == 1) {
+                "Downloading ${selectedItems.first().title}..."
+            } else {
+                "Downloading ${selectedItems.size} files..."
+            }
+            com.google.android.material.snackbar.Snackbar.make(
+                rootV,
+                message,
+                com.google.android.material.snackbar.Snackbar.LENGTH_LONG
+            ).setAction("VIEW") {
+                (activity as? MainActivity)?.showDownloads()
+            }.show()
+        }
+    }
+
     fun handleMediaDownloadFromWeb(url: String, type: String, title: String, thumb: String) {
         if (!isAdded) return
 
         var targetUrl = url
-        val isVid = type.contains("video", true) || type.contains("reel", true) ||
-                url.contains(".mp4", true) || url.contains(".webm", true) ||
-                url.contains("video.xx.fbcdn.net", true) ||
-                (url.contains("fbcdn.net", true) && url.contains("/v/t", true) && !url.contains(".jpg", true))
+        val isExplicitImage = type.contains("image", true) ||
+                type.contains("photo", true) ||
+                type.contains("img", true) ||
+                type.contains("picture", true) ||
+                url.endsWith(".jpg", true) ||
+                url.endsWith(".png", true) ||
+                url.endsWith(".webp", true) ||
+                url.endsWith(".jpeg", true)
 
+        val isExplicitVideo = type.contains("video", true) ||
+                type.contains("reel", true) ||
+                type.contains("clip", true) ||
+                type.contains("movie", true) ||
+                url.contains(".mp4", true) ||
+                url.contains(".webm", true) ||
+                url.contains(".m3u8", true) ||
+                url.contains("video.xx.fbcdn.net", true)
+
+        val isVid = if (isExplicitImage) false else isExplicitVideo
+
+        // Notification permission check (up to 2 times system prompt, then custom settings dialog)
+        activity?.let { NotificationPermissionHelper.checkAndRequestPermission(it) }
+
+        // Fast resolution from cached/intercepted state
         if (targetUrl.isBlank() || !targetUrl.startsWith("http") || targetUrl.startsWith("blob:")) {
             val intercepted = lastInterceptedVideoUrl
             if (isVid && !intercepted.isNullOrBlank()) {
@@ -1256,25 +1327,11 @@ class BrowserFragment : Fragment() {
                     ?: detectedMediaList.firstOrNull()?.url
                 if (!candidate.isNullOrBlank() && candidate.startsWith("http")) {
                     targetUrl = candidate
-                } else if (isVid) {
-                    targetUrl = ""
-                } else {
-                    Toast.makeText(
-                        requireContext(),
-                        "Extracting media... Opening download options",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                    showDownloadBottomSheet()
-                    return
                 }
             }
         }
 
-        targetUrl = DownloadHelper.cleanMediaUrl(targetUrl)
-
-        if (!isVid && DownloadHelper.isProfileOrAvatarUrl(targetUrl)) {
-            return
-        }
+        val needsFetching = targetUrl.isBlank() || !targetUrl.startsWith("http") || targetUrl.startsWith("blob:")
 
         val platform = DownloadHelper.derivePlatformPrefix(if (savedActiveUrl.isNotBlank()) savedActiveUrl else targetUrl)
         val cleanName = if (title.isBlank() || title.equals("facebook_photo", true) || title.equals("facebook_video", true) || title.equals("media", true)) {
@@ -1286,69 +1343,97 @@ class BrowserFragment : Fragment() {
         }
         val cleanThumb = if (thumb.startsWith("http")) thumb else targetUrl
 
-        val mediaItem = MediaItem(
-            id = System.currentTimeMillis().toString(),
-            title = cleanName,
-            url = targetUrl,
-            thumbnailUrl = cleanThumb,
-            sizeFormatted = if (isVid) "5.19MB" else "15.67kB",
-            isVideo = isVid,
-            isChecked = true
-        )
-        addDetectedMedia(cleanName, targetUrl, isVid, cleanThumb)
-
-        // Notification permission check (up to 2 times system prompt, then custom settings dialog)
-        activity?.let { NotificationPermissionHelper.checkAndRequestPermission(it) }
-
-        // For a single media item click: show ONLY this single clicked item at download time!
-        val candidates = mutableListOf(mediaItem)
-
-        // Open bottom sheet dialog BEFORE start download
-        val sheet = DownloadBottomSheetFragment.newInstance(candidates) { selectedItems ->
-            selectedItems.forEach { selected ->
-                var actualUrl = selected.url
-                if (actualUrl.isBlank() || actualUrl.startsWith("blob:")) {
-                    actualUrl = (lastInterceptedVideoUrl ?: "").ifBlank {
-                        detectedMediaList.firstOrNull { it.isVideo }?.url ?: ""
-                    }
-                }
-                if (actualUrl.isBlank()) return@forEach
-
-                val downloadedItem = DownloadHelper.downloadMedia(
-                    context = requireContext(),
-                    url = actualUrl,
-                    type = if (selected.isAudio) "audio" else if (selected.isVideo) "video" else "image",
-                    customName = selected.title,
-                    thumbUrl = selected.thumbnailUrl
-                ) { updatedItem ->
-                    activity?.runOnUiThread {
-                        onMediaDownloaded?.invoke(listOf(updatedItem))
-                    }
-                }
-
-                if (downloadedItem != null) {
-                    onMediaDownloaded?.invoke(listOf(downloadedItem))
-                    addDetectedMedia(downloadedItem.title, actualUrl, downloadedItem.isVideo, selected.thumbnailUrl)
-                }
+        if (!needsFetching) {
+            targetUrl = DownloadHelper.cleanMediaUrl(targetUrl)
+            if (!isVid && DownloadHelper.isProfileOrAvatarUrl(targetUrl)) {
+                return
             }
 
-            val rootV = _binding?.root
-            if (rootV != null) {
-                val message = if (selectedItems.size == 1) {
-                    "Downloading ${selectedItems.first().title}..."
-                } else {
-                    "Downloading ${selectedItems.size} files..."
-                }
-                com.google.android.material.snackbar.Snackbar.make(
-                    rootV,
-                    message,
-                    com.google.android.material.snackbar.Snackbar.LENGTH_LONG
-                ).setAction("VIEW") {
-                    (activity as? MainActivity)?.showDownloads()
-                }.show()
+            val detected = detectedMediaList.firstOrNull { it.isVideo == isVid }
+            val mediaItem = MediaItem(
+                id = System.currentTimeMillis().toString(),
+                title = cleanName,
+                url = targetUrl,
+                thumbnailUrl = cleanThumb,
+                sizeFormatted = if (isVid) "5.19MB" else "15.67kB",
+                isVideo = isVid,
+                isChecked = true,
+                hdUrl = detected?.hdUrl ?: if (targetUrl.contains("hd", ignoreCase = true)) targetUrl else null,
+                sdUrl = detected?.sdUrl ?: if (!targetUrl.contains("hd", ignoreCase = true)) targetUrl else null
+            )
+            addDetectedMedia(cleanName, targetUrl, isVid, cleanThumb, mediaItem.hdUrl, mediaItem.sdUrl)
+
+            val sheet = DownloadBottomSheetFragment.newInstance(listOf(mediaItem)) { selectedItems ->
+                executeDownloadItems(selectedItems)
             }
+            sheet.show(parentFragmentManager, DownloadBottomSheetFragment.TAG)
+        } else {
+            // Target URL is not ready yet: Open bottom sheet immediately in LOADING state so user sees feedback!
+            val sheet = DownloadBottomSheetFragment.newInstanceLoading(
+                title = if (isVid) "Fetching video details..." else "Fetching image details...",
+                subtitle = "Please wait while we retrieve the download link"
+            ) { selectedItems ->
+                executeDownloadItems(selectedItems)
+            }
+            sheet.show(parentFragmentManager, DownloadBottomSheetFragment.TAG)
+
+            // Trigger proactive extraction in the active WebView
+            activeWebView()?.post {
+                activeWebView()?.evaluateJavascript(
+                    "(function() { " +
+                            "if (window.XXVIBridge) { " +
+                            "  var v = document.querySelector('video'); " +
+                            "  if (v) { var s = v.currentSrc || v.src || ''; if (s && s.startsWith('http')) window.XXVIBridge.onMediaDetected(s, 'video', '', v.poster || ''); } " +
+                            "  var img = document.querySelector('article img, [role=\"article\"] img, div[role=\"main\"] img'); " +
+                            "  if (img) { var isrc = img.currentSrc || img.src || ''; if (isrc && isrc.startsWith('http')) window.XXVIBridge.onMediaDetected(isrc, 'image', '', isrc); } " +
+                            "} " +
+                            "})();",
+                    null
+                )
+            }
+
+            // Poll for up to 3.5 seconds to populate media
+            val startTime = System.currentTimeMillis()
+            val fetchHandler = Handler(Looper.getMainLooper())
+            val pollRunnable = object : Runnable {
+                override fun run() {
+                    if (!isAdded || sheet.dialog == null || !sheet.isAdded) return
+
+                    val candidateUrl = if (isVid) {
+                        lastInterceptedVideoUrl?.takeIf { it.startsWith("http") }
+                            ?: detectedMediaList.firstOrNull { it.isVideo && it.url.startsWith("http") }?.url
+                    } else {
+                        detectedMediaList.firstOrNull { !it.isVideo && it.url.startsWith("http") }?.url
+                    }
+
+                    if (!candidateUrl.isNullOrBlank()) {
+                        val finalUrl = DownloadHelper.cleanMediaUrl(candidateUrl)
+                        val detected = detectedMediaList.firstOrNull { it.url == finalUrl || it.isVideo == isVid }
+                        val resolvedThumb = cleanThumb.takeIf { it.startsWith("http") }
+                            ?: detected?.thumbnailUrl?.takeIf { it.startsWith("http") }
+                            ?: finalUrl
+                        val item = MediaItem(
+                            id = System.currentTimeMillis().toString(),
+                            title = cleanName,
+                            url = finalUrl,
+                            thumbnailUrl = resolvedThumb,
+                            sizeFormatted = if (isVid) "5.19MB" else "15.67kB",
+                            isVideo = isVid,
+                            isChecked = true,
+                            hdUrl = detected?.hdUrl ?: if (finalUrl.contains("hd", ignoreCase = true)) finalUrl else null,
+                            sdUrl = detected?.sdUrl ?: if (!finalUrl.contains("hd", ignoreCase = true)) finalUrl else null
+                        )
+                        addDetectedMedia(cleanName, finalUrl, isVid, resolvedThumb, item.hdUrl, item.sdUrl)
+                        sheet.updateMediaItems(listOf(item))
+                    } else if (System.currentTimeMillis() - startTime < 3500) {
+                        fetchHandler.postDelayed(this, 300)
+                    } else {
+                        sheet.showErrorState("Could not find a direct download link. Please play the media and try again.")
+                    }
+                }
+            }
+            fetchHandler.postDelayed(pollRunnable, 300)
         }
-        sheet.show(parentFragmentManager, DownloadBottomSheetFragment.TAG)
     }
 
     /**
@@ -1453,19 +1538,38 @@ class BrowserFragment : Fragment() {
         }
     }
 
-    fun addDetectedMedia(name: String, url: String, isVideo: Boolean, thumb: String? = null) {
+    fun addDetectedMedia(
+        name: String,
+        url: String,
+        isVideo: Boolean,
+        thumb: String? = null,
+        hdUrl: String? = null,
+        sdUrl: String? = null
+    ) {
         if (url.isBlank() || !url.startsWith("http") || url.startsWith("blob:")) return
         if (!isVideo && DownloadHelper.isProfileOrAvatarUrl(url)) return
-        if (detectedMediaList.none { it.url == url }) {
-            val currentWebUrl = savedActiveUrl
-            val platform = DownloadHelper.derivePlatformPrefix(if (currentWebUrl.isNotBlank() && !currentWebUrl.startsWith("about:") && !currentWebUrl.startsWith("home")) currentWebUrl else url)
-            val cleanName = if (name.isBlank() || name.equals("facebook_photo", true) || name.equals("facebook_video", true) || name.equals("media", true)) {
-                "${platform}_${if (isVideo) "video" else "photo"}_${System.currentTimeMillis() % 100000000}"
-            } else if (!name.startsWith(platform, ignoreCase = true) && !name.contains("_")) {
-                "${platform}_$name"
-            } else {
-                name
-            }
+        val currentWebUrl = savedActiveUrl
+        val platform = DownloadHelper.derivePlatformPrefix(if (currentWebUrl.isNotBlank() && !currentWebUrl.startsWith("about:") && !currentWebUrl.startsWith("home")) currentWebUrl else url)
+        val cleanName = if (name.isBlank() || name.equals("facebook_photo", true) || name.equals("facebook_video", true) || name.equals("media", true)) {
+            "${platform}_${if (isVideo) "video" else "photo"}_${System.currentTimeMillis() % 100000000}"
+        } else if (!name.startsWith(platform, ignoreCase = true) && !name.contains("_")) {
+            "${platform}_$name"
+        } else {
+            name
+        }
+
+        val resolvedHd = hdUrl ?: if (url.contains("hd", ignoreCase = true) || url.contains("720", ignoreCase = true) || url.contains("1080", ignoreCase = true)) url else null
+        val resolvedSd = sdUrl ?: if (!url.contains("hd", ignoreCase = true)) url else null
+
+        val existingIndex = detectedMediaList.indexOfFirst { it.url == url }
+        if (existingIndex != -1) {
+            val existing = detectedMediaList[existingIndex]
+            detectedMediaList[existingIndex] = existing.copy(
+                hdUrl = resolvedHd ?: existing.hdUrl,
+                sdUrl = resolvedSd ?: existing.sdUrl,
+                thumbnailUrl = if (!thumb.isNullOrBlank() && thumb.startsWith("http")) thumb else existing.thumbnailUrl
+            )
+        } else {
             detectedMediaList.add(
                 0,
                 MediaItem(
@@ -1474,7 +1578,9 @@ class BrowserFragment : Fragment() {
                     url = url,
                     thumbnailUrl = if (!thumb.isNullOrBlank() && thumb.startsWith("http")) thumb else url,
                     sizeFormatted = if (isVideo) "3.42 MB" else "15.67kB",
-                    isVideo = isVideo
+                    isVideo = isVideo,
+                    hdUrl = resolvedHd,
+                    sdUrl = resolvedSd
                 )
             )
         }
@@ -1544,26 +1650,23 @@ class BrowserFragment : Fragment() {
         val b = _binding ?: return
         val ctx = context ?: return
 
-        val recents = BrowserHistoryManager.getRecentlyUsedWebsites24h(ctx)
-        if (recents.isEmpty()) {
-            b.tvRecentlyUsedTitle.visibility = View.GONE
-            b.llRecentlyUsedContainer.visibility = View.GONE
-            return
-        }
-
         b.tvRecentlyUsedTitle.visibility = View.VISIBLE
         b.llRecentlyUsedContainer.visibility = View.VISIBLE
 
-        val item1 = recents.getOrNull(0)
-        if (item1 != null) {
-            b.btnRecentItem1.visibility = View.VISIBLE
-            b.tvRecentTitle1.text = item1.title.ifBlank { "Website" }
-            b.ivRecentIcon1.setImageResource(resolvePlatformIcon(item1.url, item1.title))
-            b.btnRecentItem1.setOnClickListener {
-                if (::shortcutsAdapter.isInitialized && shortcutsAdapter.isEditMode) {
-                    shortcutsAdapter.setEditMode(false)
-                    return@setOnClickListener
-                }
+        val recents = BrowserHistoryManager.getRecentlyUsedWebsites24h(ctx)
+
+        // Item 1: 1st recent website
+        val item1 = recents.getOrNull(0) ?: HistoryEntry(title = "Facebook", url = "https://m.facebook.com/")
+        b.btnRecentItem1.visibility = View.VISIBLE
+        b.tvRecentTitle1.text = item1.title.ifBlank { "Facebook" }
+        b.ivRecentIcon1.setImageResource(resolvePlatformIcon(item1.url, item1.title))
+        b.btnRecentItem1.setOnClickListener {
+            if (::shortcutsAdapter.isInitialized && shortcutsAdapter.isEditMode) {
+                shortcutsAdapter.setEditMode(false)
+                return@setOnClickListener
+            }
+            val act = activity
+            val proceed = {
                 if (item1.url.contains("whatsapp", ignoreCase = true) || item1.title.contains("whatsapp", ignoreCase = true)) {
                     val intent = Intent(requireContext(), WhatsAppStatusActivity::class.java)
                     startActivity(intent)
@@ -1571,20 +1674,25 @@ class BrowserFragment : Fragment() {
                     loadUrl(item1.url)
                 }
             }
-        } else {
-            b.btnRecentItem1.visibility = View.INVISIBLE
+            if (act != null) {
+                AdManager.showInterstitial(act, proceed)
+            } else {
+                proceed()
+            }
         }
 
-        val item2 = recents.getOrNull(1)
-        if (item2 != null) {
-            b.btnRecentItem2.visibility = View.VISIBLE
-            b.tvRecentTitle2.text = item2.title.ifBlank { "Website" }
-            b.ivRecentIcon2.setImageResource(resolvePlatformIcon(item2.url, item2.title))
-            b.btnRecentItem2.setOnClickListener {
-                if (::shortcutsAdapter.isInitialized && shortcutsAdapter.isEditMode) {
-                    shortcutsAdapter.setEditMode(false)
-                    return@setOnClickListener
-                }
+        // Item 2: 2nd recent website
+        val item2 = recents.getOrNull(1) ?: HistoryEntry(title = "duckduckgo.com", url = "https://duckduckgo.com/")
+        b.btnRecentItem2.visibility = View.VISIBLE
+        b.tvRecentTitle2.text = item2.title.ifBlank { "duckduckgo.com" }
+        b.ivRecentIcon2.setImageResource(resolvePlatformIcon(item2.url, item2.title))
+        b.btnRecentItem2.setOnClickListener {
+            if (::shortcutsAdapter.isInitialized && shortcutsAdapter.isEditMode) {
+                shortcutsAdapter.setEditMode(false)
+                return@setOnClickListener
+            }
+            val act = activity
+            val proceed = {
                 if (item2.url.contains("whatsapp", ignoreCase = true) || item2.title.contains("whatsapp", ignoreCase = true)) {
                     val intent = Intent(requireContext(), WhatsAppStatusActivity::class.java)
                     startActivity(intent)
@@ -1592,17 +1700,28 @@ class BrowserFragment : Fragment() {
                     loadUrl(item2.url)
                 }
             }
-        } else {
-            b.btnRecentItem2.visibility = View.GONE
+            if (act != null) {
+                AdManager.showInterstitial(act, proceed)
+            } else {
+                proceed()
+            }
         }
 
+        // Item 3: "All" / "View All" - opens all previously used websites in HistoryActivity
         b.btnRecentAll.visibility = View.VISIBLE
         b.btnRecentAll.setOnClickListener {
             if (::shortcutsAdapter.isInitialized && shortcutsAdapter.isEditMode) {
                 shortcutsAdapter.setEditMode(false)
                 return@setOnClickListener
             }
-            (activity as? MainActivity)?.showHistoryDialog()
+            val act = activity
+            if (act != null) {
+                AdManager.showInterstitial(act) {
+                    (activity as? MainActivity)?.showHistoryDialog()
+                }
+            } else {
+                (activity as? MainActivity)?.showHistoryDialog()
+            }
         }
     }
 
@@ -1628,25 +1747,34 @@ class BrowserFragment : Fragment() {
         val target = input.trim()
         if (target.isEmpty()) return
 
-        binding.cardSearchSuggestions.visibility = View.GONE
-        binding.etUrl.clearFocus()
-        binding.etHomeSearch.clearFocus()
-        hideKeyboard()
+        val act = activity
+        val proceed = {
+            binding.cardSearchSuggestions.visibility = View.GONE
+            binding.etUrl.clearFocus()
+            binding.etHomeSearch.clearFocus()
+            hideKeyboard()
 
-        val finalUrl = when {
-            target.startsWith("http://") || target.startsWith("https://") -> target
-            target.contains(".") && !target.contains(" ") -> "https://$target"
-            else -> SearchEngineManager.buildSearchUrl(requireContext(), target)
+            val finalUrl = when {
+                target.startsWith("http://") || target.startsWith("https://") -> target
+                target.contains(".") && !target.contains(" ") -> "https://$target"
+                else -> SearchEngineManager.buildSearchUrl(requireContext(), target)
+            }
+
+            val title = if (target.startsWith("http://") || target.startsWith("https://") || (target.contains(".") && !target.contains(" "))) {
+                derivePlatformTitle(finalUrl)
+            } else {
+                target
+            }
+            context?.let { BrowserHistoryManager.addHistory(it, title, finalUrl) }
+
+            loadUrl(finalUrl)
         }
 
-        val title = if (target.startsWith("http://") || target.startsWith("https://") || (target.contains(".") && !target.contains(" "))) {
-            derivePlatformTitle(finalUrl)
+        if (act != null) {
+            AdManager.showInterstitial(act, proceed)
         } else {
-            target
+            proceed()
         }
-        context?.let { BrowserHistoryManager.addHistory(it, title, finalUrl) }
-
-        loadUrl(finalUrl)
     }
 
     /**
@@ -1737,36 +1865,42 @@ class BrowserFragment : Fragment() {
         if (!isAdded) return
         activity?.let { NotificationPermissionHelper.checkAndRequestPermission(it) }
         if (detectedMediaList.isEmpty()) {
-            Toast.makeText(requireContext(), "No media detected on this page yet", Toast.LENGTH_SHORT).show()
+            val sheet = DownloadBottomSheetFragment.newInstanceLoading(
+                title = "Scanning page for media...",
+                subtitle = "Please wait while we locate downloadable videos and photos"
+            ) { selectedItems ->
+                executeDownloadItems(selectedItems)
+            }
+            sheet.show(parentFragmentManager, DownloadBottomSheetFragment.TAG)
+
+            activeWebView()?.post {
+                activeWebView()?.evaluateJavascript(
+                    FacebookMediaSniffer.getInjectionScript(),
+                    null
+                )
+            }
+
+            val startTime = System.currentTimeMillis()
+            val fetchHandler = Handler(Looper.getMainLooper())
+            val pollRunnable = object : Runnable {
+                override fun run() {
+                    if (!isAdded || sheet.dialog == null || !sheet.isAdded) return
+                    if (detectedMediaList.isNotEmpty()) {
+                        val items = detectedMediaList.mapIndexed { index, item -> item.copy(isChecked = (index == 0)) }
+                        sheet.updateMediaItems(items)
+                    } else if (System.currentTimeMillis() - startTime < 3500) {
+                        fetchHandler.postDelayed(this, 300)
+                    } else {
+                        sheet.showErrorState("No media detected on this page yet. Play the video or scroll down to load photos.")
+                    }
+                }
+            }
+            fetchHandler.postDelayed(pollRunnable, 300)
             return
         }
         val items = detectedMediaList.mapIndexed { index, item -> item.copy(isChecked = (index == 0)) }
         val sheet = DownloadBottomSheetFragment.newInstance(items) { selectedItems ->
-            selectedItems.forEach { item ->
-                DownloadHelper.downloadMedia(
-                    context = requireContext(),
-                    url = item.url,
-                    type = if (item.isVideo) "video" else "image",
-                    customName = item.title,
-                    thumbUrl = item.thumbnailUrl
-                ) { updatedItem ->
-                    activity?.runOnUiThread {
-                        onMediaDownloaded?.invoke(listOf(updatedItem))
-                    }
-                }
-            }
-            onMediaDownloaded?.invoke(selectedItems)
-
-            val rootV = _binding?.root
-            if (rootV != null) {
-                com.google.android.material.snackbar.Snackbar.make(
-                    rootV,
-                    "${selectedItems.size} files downloading...",
-                    com.google.android.material.snackbar.Snackbar.LENGTH_LONG
-                ).setAction("VIEW") {
-                    (activity as? MainActivity)?.showDownloads()
-                }.show()
-            }
+            executeDownloadItems(selectedItems)
         }
         sheet.show(parentFragmentManager, DownloadBottomSheetFragment.TAG)
     }

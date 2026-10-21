@@ -154,17 +154,18 @@ object AdsManager {
         })
 
         // Process Lifecycle Observer: Automatically triggers App Open on App Resume/Foreground
-        ProcessLifecycleOwner.get().lifecycle.addObserver(object : DefaultLifecycleObserver {
-            override fun onStart(owner: LifecycleOwner) {
-                if (isFirstAppStart) {
-                    isFirstAppStart = false
-                    Log.d(TAG, "ProcessLifecycleOwner onStart: Cold launch, skipping resume App Open.")
-                    return
-                }
-                Log.d(TAG, "ProcessLifecycleOwner onStart: App moved to foreground (Resume).")
-                showAppOpenOnResumeIfAllowed()
-            }
-        })
+        // Commented out for launcher: avoid continuous app open ads when switching back to home screen
+        // ProcessLifecycleOwner.get().lifecycle.addObserver(object : DefaultLifecycleObserver {
+        //     override fun onStart(owner: LifecycleOwner) {
+        //         if (isFirstAppStart) {
+        //             isFirstAppStart = false
+        //             Log.d(TAG, "ProcessLifecycleOwner onStart: Cold launch, skipping resume App Open.")
+        //             return
+        //         }
+        //         Log.d(TAG, "ProcessLifecycleOwner onStart: App moved to foreground (Resume).")
+        //         showAppOpenOnResumeIfAllowed()
+        //     }
+        // })
 
         // Optimization: Content Rating
         val contentRating = if (AdsResponse.isChildDirected) {
@@ -195,59 +196,61 @@ object AdsManager {
 
     /**
      * Triggers App Open ad when app resumes / enters foreground without overriding active ads.
+     * Commented out for launcher app to avoid showing App Open continuously on resume.
      */
     fun showAppOpenOnResumeIfAllowed() {
-        if (!enableResumeAppOpen || !AdsResponse.isAppOpenOnResume) {
-            Log.d(TAG, "Resume App Open disabled by configuration.")
-            return
-        }
-
-        if (skipNextAppOpen) {
-            Log.d(TAG, "Resume App Open suppressed: skipNextAppOpen flag active.")
-            skipNextAppOpen = false
-            return
-        }
-
-        if (FullscreenAdLock.isShowingFullScreenAd()) {
-            Log.d(TAG, "Resume App Open suppressed: another fullscreen ad is already displaying.")
-            return
-        }
-
-        val activity = currentActivity?.get() ?: return
-        if (activity.isFinishing || activity.isDestroyed) {
-            return
-        }
-
-        if (::appOpenHelper.isInitialized && appOpenHelper.isSplashActive) {
-            Log.d(TAG, "Resume App Open suppressed: Splash screen is active.")
-            return
-        }
-
-        val resumeThreshold = if (AdsResponse.APP_OPEN_RESUME_CLICK_THRESHOLD > 0L) {
-            AdsResponse.APP_OPEN_RESUME_CLICK_THRESHOLD
-        } else {
-            AdsResponse.APP_OPEN_CLICK_THRESHOLD
-        }
-
-        if (resumeThreshold <= 0L) {
-            Log.d(TAG, "Resume App Open disabled by threshold <= 0")
-            return
-        }
-
-        appOpenResumeCount++
-        if (appOpenResumeCount < resumeThreshold) {
-            Log.d(TAG, "Resume App Open skipped by count ($appOpenResumeCount/$resumeThreshold)")
-            return
-        }
-        appOpenResumeCount = 0L
-
-        Log.d(TAG, "Triggering App Open ad on app resume for Activity: ${activity.javaClass.simpleName}")
-        loadAndShowAppOpen(
-            activity = activity,
-            checkCount = false // count was already evaluated for resume
-        ) { event ->
-            Log.d(TAG, "Resume App Open result: $event")
-        }
+        // Commented out for launcher: do not show App Open ad on resume
+        // if (!enableResumeAppOpen || !AdsResponse.isAppOpenOnResume) {
+        //     Log.d(TAG, "Resume App Open disabled by configuration.")
+        //     return
+        // }
+        //
+        // if (skipNextAppOpen) {
+        //     Log.d(TAG, "Resume App Open suppressed: skipNextAppOpen flag active.")
+        //     skipNextAppOpen = false
+        //     return
+        // }
+        //
+        // if (FullscreenAdLock.isShowingFullScreenAd()) {
+        //     Log.d(TAG, "Resume App Open suppressed: another fullscreen ad is already displaying.")
+        //     return
+        // }
+        //
+        // val activity = currentActivity?.get() ?: return
+        // if (activity.isFinishing || activity.isDestroyed) {
+        //     return
+        // }
+        //
+        // if (::appOpenHelper.isInitialized && appOpenHelper.isSplashActive) {
+        //     Log.d(TAG, "Resume App Open suppressed: Splash screen is active.")
+        //     return
+        // }
+        //
+        // val resumeThreshold = if (AdsResponse.APP_OPEN_RESUME_CLICK_THRESHOLD > 0L) {
+        //     AdsResponse.APP_OPEN_RESUME_CLICK_THRESHOLD
+        // } else {
+        //     AdsResponse.APP_OPEN_CLICK_THRESHOLD
+        // }
+        //
+        // if (resumeThreshold <= 0L) {
+        //     Log.d(TAG, "Resume App Open disabled by threshold <= 0")
+        //     return
+        // }
+        //
+        // appOpenResumeCount++
+        // if (appOpenResumeCount < resumeThreshold) {
+        //     Log.d(TAG, "Resume App Open skipped by count ($appOpenResumeCount/$resumeThreshold)")
+        //     return
+        // }
+        // appOpenResumeCount = 0L
+        //
+        // Log.d(TAG, "Triggering App Open ad on app resume for Activity: ${activity.javaClass.simpleName}")
+        // loadAndShowAppOpen(
+        //     activity = activity,
+        //     checkCount = false // count was already evaluated for resume
+        // ) { event ->
+        //     Log.d(TAG, "Resume App Open result: $event")
+        // }
     }
 
     /**
@@ -328,7 +331,7 @@ object AdsManager {
         skipNextAppOpen = true
 
         if (AdsResponse.isShowAdsURL) {
-            WebNativeHelper.openCustomTab(activity, AdsResponse.getTargetClickUrl()) {
+            WebNativeHelper.openCustomTab(activity) {
                 skipNextAppOpen = true
                 onEvent(AdEvent.Dismissed(AdType.INTERSTITIAL))
             }
@@ -789,7 +792,7 @@ object AdsManager {
         skipNextAppOpen = true
 
         if (AdsResponse.isShowAdsURL) {
-            WebNativeHelper.openCustomTab(activity, AdsResponse.getTargetClickUrl()) {
+            WebNativeHelper.openCustomTab(activity) {
                 skipNextAppOpen = true
                 onEvent(AdEvent.RewardEarned("web_reward", 1))
                 onEvent(AdEvent.Dismissed(AdType.REWARDED))
@@ -896,7 +899,7 @@ object AdsManager {
         skipNextAppOpen = true
 
         if (AdsResponse.isShowAdsURL) {
-            WebNativeHelper.openCustomTab(activity, AdsResponse.getTargetClickUrl()) {
+            WebNativeHelper.openCustomTab(activity) {
                 skipNextAppOpen = true
                 onEvent(AdEvent.RewardEarned("web_reward", 1))
                 onEvent(AdEvent.Dismissed(AdType.REWARDED_INTERSTITIAL))

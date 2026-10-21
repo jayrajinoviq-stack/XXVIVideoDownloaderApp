@@ -23,8 +23,18 @@ import androidx.core.view.GravityCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.LinearLayoutManager
+import android.app.Dialog
+import android.content.Context
+import android.graphics.drawable.ColorDrawable
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
+import android.view.ViewGroup
+import android.view.Window
 import com.inoviq.videodownloader.videosaver.storysaver.R
 import com.inoviq.videodownloader.videosaver.storysaver.adapter.TabSwitcherAdapter
+import com.inoviq.videodownloader.videosaver.storysaver.ads.AdManager
 import com.inoviq.videodownloader.videosaver.storysaver.databinding.ActivityMainBinding
 import com.inoviq.videodownloader.videosaver.storysaver.model.BrowserTab
 import com.inoviq.videodownloader.videosaver.storysaver.model.HistoryItem
@@ -36,7 +46,7 @@ import com.inoviq.videodownloader.videosaver.storysaver.utils.LauncherHelper
 import com.inoviq.videodownloader.videosaver.storysaver.utils.TabStore
 import kotlin.math.abs
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : BaseActivity() {
 
     private lateinit var binding: ActivityMainBinding
     lateinit var browserFragment: BrowserFragment
@@ -44,6 +54,7 @@ class MainActivity : AppCompatActivity() {
     private val historyList = mutableListOf<HistoryItem>()
     private val bookmarksList = mutableListOf<Pair<String, String>>()
     private lateinit var tabAdapter: TabSwitcherAdapter
+    private lateinit var inAppUpdateHelper: com.inoviq.videodownloader.videosaver.storysaver.utils.InAppUpdateHelper
 
     private val historyLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == RESULT_OK) {
@@ -70,16 +81,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.light(
-                Color.TRANSPARENT,
-                Color.TRANSPARENT
-            ),
-            navigationBarStyle = SystemBarStyle.light(
-                Color.TRANSPARENT,
-                Color.TRANSPARENT
-            )
-        )
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
@@ -107,15 +108,6 @@ class MainActivity : AppCompatActivity() {
 
         val density = resources.displayMetrics.density
 
-        // Fit system window insets for fragmentContainer dynamically based on bottom nav and status bars
-        ViewCompat.setOnApplyWindowInsetsListener(binding.fragmentContainer) { v, insets ->
-            val systemBars = insets.getInsets(
-                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
-            )
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-            insets
-        }
-
         // Fit system window insets for root DrawerLayout and dispatch down to fragmentContainer and drawer tabs
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
             val systemBars = insets.getInsets(
@@ -139,12 +131,10 @@ class MainActivity : AppCompatActivity() {
                 (6 * density).toInt(),
                 systemBars.bottom + (20 * density).toInt()
             )
-            ViewCompat.dispatchApplyWindowInsets(binding.fragmentContainer, insets)
             insets
         }
 
         ViewCompat.requestApplyInsets(binding.root)
-        ViewCompat.requestApplyInsets(binding.fragmentContainer)
         binding.root.post {
             ViewCompat.requestApplyInsets(binding.fragmentContainer)
         }
@@ -152,9 +142,12 @@ class MainActivity : AppCompatActivity() {
         initTabsAndHistory()
         setupFragmentsAndNavigation()
         setupTabsDrawer()
-        setupBackNavigation()
 
         handleIntent(intent)
+
+        // Initialize Google Play In-App Update check
+        inAppUpdateHelper = com.inoviq.videodownloader.videosaver.storysaver.utils.InAppUpdateHelper(this, binding.root)
+        inAppUpdateHelper.checkForUpdate()
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -247,13 +240,15 @@ class MainActivity : AppCompatActivity() {
         tabAdapter = TabSwitcherAdapter(
             openTabs,
             onTabClick = { tab ->
-                openTabs.forEach { it.isCurrent = false }
-                tab.isCurrent = true
-                tabAdapter.notifyDataSetChanged()
-                // Switch to the tapped tab instantly — no reload
-                browserFragment.switchToTab(tab.id, tab.url)
-                closeTabsDrawer()
-                TabStore.saveTabs(this, openTabs)
+                AdManager.showInterstitial(this) {
+                    openTabs.forEach { it.isCurrent = false }
+                    tab.isCurrent = true
+                    tabAdapter.notifyDataSetChanged()
+                    // Switch to the tapped tab instantly — no reload
+                    browserFragment.switchToTab(tab.id, tab.url)
+                    closeTabsDrawer()
+                    TabStore.saveTabs(this, openTabs)
+                }
             },
             onCloseClick = { tab, position ->
                 closeTab(tab, position)
@@ -270,7 +265,9 @@ class MainActivity : AppCompatActivity() {
 
         // Header '+' button inside Drawer (Vector 1): creates new tab (Image 3)
         binding.btnAddNewTabFromDrawer.setOnClickListener {
-            addNewTab()
+            AdManager.showInterstitial(this) {
+                addNewTab()
+            }
         }
 
         updateTabCountState()
@@ -337,6 +334,20 @@ class MainActivity : AppCompatActivity() {
         TabStore.saveTabs(this, openTabs)
     }
 
+    override fun onResume() {
+        super.onResume()
+        if (::inAppUpdateHelper.isInitialized) {
+            inAppUpdateHelper.onResume()
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        if (::inAppUpdateHelper.isInitialized) {
+            inAppUpdateHelper.onDestroy()
+        }
+    }
+
     override fun onStop() {
         super.onStop()
         TabStore.saveTabs(this, openTabs)
@@ -355,11 +366,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun showHistoryDialog() {
-        historyLauncher.launch(Intent(this, HistoryActivity::class.java))
+        AdManager.showInterstitial(this) {
+            historyLauncher.launch(Intent(this, HistoryActivity::class.java))
+        }
     }
 
     fun showBookmarksDialog() {
-        bookmarkLauncher.launch(Intent(this, BookmarkActivity::class.java))
+        AdManager.showInterstitial(this) {
+            bookmarkLauncher.launch(Intent(this, BookmarkActivity::class.java))
+        }
     }
 
     fun addBookmark(title: String, url: String) {
@@ -465,27 +480,24 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun setupBackNavigation() {
-        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
-            override fun handleOnBackPressed() {
-                if (binding.drawerLayout.isDrawerOpen(GravityCompat.START)) {
-                    closeTabsDrawer()
-                    return
-                }
+    override fun handleBackPress() {
+        if (binding.drawerLayout.isDrawerOpen(GravityCompat.START)) {
+            closeTabsDrawer()
+            return
+        }
 
-                if (browserFragment.canGoBack()) {
-                    browserFragment.goBack()
-                    return
-                }
+        if (::browserFragment.isInitialized && browserFragment.canGoBack()) {
+            browserFragment.goBack()
+            return
+        }
 
-                // If user is at root of MainActivity, smoothly slide close to reveal Launcher Home
-                if (LauncherHelper.isDefaultLauncher(this@MainActivity)) {
-                    animateAndClose(binding.root.translationX)
-                } else {
-                    isEnabled = false
-                    onBackPressedDispatcher.onBackPressed()
-                }
+        // If user is at root of MainActivity, show Interstitial Ad (based on count threshold) and exit
+        AdManager.showInterstitial(this) {
+            if (LauncherHelper.isDefaultLauncher(this@MainActivity)) {
+                animateAndClose(binding.root.translationX)
+            } else {
+                finish()
             }
-        })
+        }
     }
 }

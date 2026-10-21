@@ -41,6 +41,8 @@ object DownloadStore {
                 if (f.exists()) {
                     f.delete()
                 }
+                val thumb = File(f.parentFile, "${f.nameWithoutExtension}_thumb.jpg")
+                if (thumb.exists()) thumb.delete()
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -93,6 +95,13 @@ object DownloadStore {
                 title.contains("mock")
     }
 
+    fun formatSize(bytes: Long): String {
+        if (bytes <= 0L) return "0 B"
+        val mb = bytes / (1024.0 * 1024.0)
+        val kb = bytes / 1024.0
+        return if (mb >= 1.0) String.format("%.2f MB", mb) else String.format("%.1f kB", kb)
+    }
+
     fun getDownloadedItems(context: Context): List<MediaItem> {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val jsonStr = prefs.getString(KEY_DOWNLOADS, null)
@@ -105,9 +114,9 @@ object DownloadStore {
                     val obj = jsonArray.getJSONObject(i)
                     val url = obj.optString("url", "")
                     val thumb = obj.optString("thumbnailUrl", "")
-                    val title = obj.optString("title", "facebook_media")
+                    val title = obj.optString("title", "downloaded_media")
 
-                    // Filter out any default mock items
+                    // Filter out any mock items
                     if (url.contains("example.com") || thumb.contains("picsum.photos") || title.contains("dummy") || title.contains("mock")) {
                         continue
                     }
@@ -119,22 +128,32 @@ object DownloadStore {
                             title.endsWith(".m4a", ignoreCase = true) ||
                             title.contains("audio", ignoreCase = true) ||
                             (localPath != null && (localPath.endsWith(".mp3", ignoreCase = true) || localPath.endsWith(".m4a", ignoreCase = true)))
-                    val isVideo = !isAudio && obj.optBoolean("isVideo", false)
+                    val isVideo = !isAudio && (obj.optBoolean("isVideo", false) || title.endsWith(".mp4", ignoreCase = true) || (localPath != null && localPath.endsWith(".mp4", ignoreCase = true)))
                     val defaultSizeStr = if (isAudio) "165 kB" else if (isVideo) "3.42 MB" else "15.67kB"
                     val sizeStr = obj.optString("sizeFormatted", defaultSizeStr)
+                    val isDownloaded = if (obj.has("isDownloaded")) obj.getBoolean("isDownloaded") else true
+                    val downloadProgress = obj.optInt("downloadProgress", if (isDownloaded) 100 else 0)
+                    val quality = if (obj.has("quality") && !obj.isNull("quality")) obj.getString("quality") else null
+
+                    // If marked downloaded and has localPath, verify file exists; otherwise drop ghost item
+                    if (isDownloaded && !localPath.isNullOrBlank() && !File(localPath).exists()) {
+                        continue
+                    }
 
                     items.add(
                         MediaItem(
                             id = obj.optString("id", System.currentTimeMillis().toString()),
                             title = title,
                             url = url,
-                            thumbnailUrl = if (obj.has("thumbnailUrl") && !obj.isNull("thumbnailUrl")) obj.getString("thumbnailUrl") else null,
+                            thumbnailUrl = if (!thumb.isNullOrBlank()) thumb else null,
                             sizeBytes = sizeBytes,
                             sizeFormatted = sizeStr,
                             isVideo = isVideo,
                             isAudio = isAudio,
-                            isDownloaded = true,
-                            localPath = localPath
+                            downloadProgress = downloadProgress,
+                            isDownloaded = isDownloaded,
+                            localPath = localPath,
+                            quality = quality
                         )
                     )
                 }
@@ -143,7 +162,74 @@ object DownloadStore {
             }
         }
 
+        // Auto-Discovery: Scan XXVI_Downloader on disk for existing files (e.g. after reinstall)
+        val discoveredNewItems = scanDiskForDiscoveredFiles(context, items)
+        if (discoveredNewItems) {
+            saveList(context, items)
+        }
+
         return items
+    }
+
+    private fun scanDiskForDiscoveredFiles(context: Context, currentList: MutableList<MediaItem>): Boolean {
+        var addedAny = false
+        try {
+            val downloadDir = DownloadHelper.getDownloadDirectory(context, createIfMissing = false)
+            val dirsToScan = mutableListOf<File>()
+            if (downloadDir.exists() && downloadDir.isDirectory) {
+                dirsToScan.add(downloadDir)
+            }
+            context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)?.let {
+                val appDir = File(it, "XXVI_Downloader")
+                if (appDir.exists() && appDir.isDirectory && appDir.absolutePath != downloadDir.absolutePath) {
+                    dirsToScan.add(appDir)
+                }
+            }
+
+            for (dir in dirsToScan) {
+                val files = dir.listFiles() ?: continue
+                for (file in files) {
+                    if (!file.isFile || file.length() <= 0L) continue
+                    val name = file.name
+                    val lower = name.lowercase()
+                    if (lower.endsWith(".part") || lower.endsWith("_thumb.jpg") || lower.endsWith("_raw.mp4") || lower.startsWith(".")) {
+                        continue
+                    }
+
+                    val isAudio = lower.endsWith(".mp3") || lower.endsWith(".m4a") || lower.endsWith(".aac") || lower.endsWith(".ogg") || lower.endsWith(".wav")
+                    val isVideo = !isAudio && (lower.endsWith(".mp4") || lower.endsWith(".webm") || lower.endsWith(".mkv") || lower.endsWith(".mov"))
+                    val isImage = !isAudio && !isVideo && (lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".png") || lower.endsWith(".webp"))
+
+                    if (!isAudio && !isVideo && !isImage) continue
+
+                    // Check if already in list
+                    val alreadyKnown = currentList.any { it.localPath == file.absolutePath || it.title == file.name }
+                    if (!alreadyKnown) {
+                        val siblingThumb = File(file.parentFile, "${file.nameWithoutExtension}_thumb.jpg")
+                        val thumbPath = if (siblingThumb.exists()) siblingThumb.absolutePath else if (isImage) file.absolutePath else null
+                        currentList.add(
+                            MediaItem(
+                                id = "disk_${file.lastModified()}_${file.name.hashCode()}",
+                                title = file.name,
+                                url = file.absolutePath,
+                                thumbnailUrl = thumbPath,
+                                sizeBytes = file.length(),
+                                sizeFormatted = formatSize(file.length()),
+                                isVideo = isVideo,
+                                isAudio = isAudio,
+                                downloadProgress = 100,
+                                isDownloaded = true,
+                                localPath = file.absolutePath
+                            )
+                        )
+                        addedAny = true
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return addedAny
     }
 
     private fun saveList(context: Context, list: List<MediaItem>) {
@@ -160,7 +246,10 @@ object DownloadStore {
                 put("sizeFormatted", item.sizeFormatted)
                 put("isVideo", item.isVideo)
                 put("isAudio", item.isAudio)
+                put("isDownloaded", item.isDownloaded)
+                put("downloadProgress", item.downloadProgress)
                 put("localPath", item.localPath ?: "")
+                put("quality", item.quality ?: "")
             }
             jsonArray.put(obj)
         }

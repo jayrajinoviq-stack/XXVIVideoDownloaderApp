@@ -20,6 +20,22 @@ class MyApp : Application() {
         // Initialize Ads SDK and preload cached units
         AdManager.init(this)
 
+        // Listen for LauncherHomeActivity resume to silently refresh Firebase Remote Config periodically
+        registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
+            override fun onActivityResumed(activity: Activity) {
+                if (activity.javaClass.simpleName == "LauncherHomeActivity") {
+                    com.inoviq.videodownloader.videosaver.storysaver.ads.RemoteConfigHelper.fetchInBackgroundIfStale(activity)
+                }
+            }
+
+            override fun onActivityCreated(activity: Activity, savedInstanceState: android.os.Bundle?) {}
+            override fun onActivityStarted(activity: Activity) {}
+            override fun onActivityPaused(activity: Activity) {}
+            override fun onActivityStopped(activity: Activity) {}
+            override fun onActivitySaveInstanceState(activity: Activity, outState: android.os.Bundle) {}
+            override fun onActivityDestroyed(activity: Activity) {}
+        })
+
         // Register Launcher Left Panel Provider Bridge
         LeftPanelRegistry.provider = object : LeftPanelProvider {
             override fun openLeftPanel(activity: Activity) {

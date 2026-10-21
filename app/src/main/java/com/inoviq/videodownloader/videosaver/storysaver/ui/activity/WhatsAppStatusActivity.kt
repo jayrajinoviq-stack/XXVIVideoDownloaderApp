@@ -31,6 +31,7 @@ import com.bumptech.glide.Glide
 import com.google.android.material.snackbar.Snackbar
 import com.inoviq.videodownloader.videosaver.storysaver.R
 import com.inoviq.videodownloader.videosaver.storysaver.adapter.WhatsAppStatusAdapter
+import com.inoviq.videodownloader.videosaver.storysaver.ads.AdManager
 import com.inoviq.videodownloader.videosaver.storysaver.databinding.ActivityWhatsappStatusBinding
 import com.inoviq.videodownloader.videosaver.storysaver.databinding.DialogAppNotInstalledBinding
 import com.inoviq.videodownloader.videosaver.storysaver.databinding.DialogStatusPreviewBinding
@@ -44,7 +45,7 @@ import java.io.File
 import java.io.FileOutputStream
 import kotlin.concurrent.thread
 
-class WhatsAppStatusActivity : AppCompatActivity() {
+class WhatsAppStatusActivity : BaseActivity() {
 
     companion object {
         const val PACKAGE_WHATSAPP = "com.whatsapp"
@@ -78,10 +79,6 @@ class WhatsAppStatusActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT),
-            navigationBarStyle = SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
-        )
         super.onCreate(savedInstanceState)
         binding = ActivityWhatsappStatusBinding.inflate(layoutInflater)
         setContentView(binding.root)
@@ -115,7 +112,7 @@ class WhatsAppStatusActivity : AppCompatActivity() {
 
     private fun setupToolbar() {
         binding.btnBack.setOnClickListener {
-            finish()
+            handleBackPress()
         }
 
         // Open Downloads Tab directly
@@ -209,7 +206,9 @@ class WhatsAppStatusActivity : AppCompatActivity() {
         statusAdapter = WhatsAppStatusAdapter(
             items = displayedStatuses,
             onItemClick = { item ->
-                showStatusPreviewDialog(item)
+                AdManager.showInterstitial(this) {
+                    showStatusPreviewDialog(item)
+                }
             },
             onDownloadClick = { item, position ->
                 downloadStatus(item) {
@@ -753,6 +752,16 @@ class WhatsAppStatusActivity : AppCompatActivity() {
     // ---------------------------------------------------------------------------------------------
 
     private fun downloadStatus(item: WhatsAppStatusItem, onSuccess: (() -> Unit)? = null) {
+        if (item.isVideo) {
+            AdManager.showRewardedAd(this) {
+                performDownloadStatus(item, onSuccess)
+            }
+        } else {
+            performDownloadStatus(item, onSuccess)
+        }
+    }
+
+    private fun performDownloadStatus(item: WhatsAppStatusItem, onSuccess: (() -> Unit)? = null) {
         val targetDir = DownloadHelper.getDownloadDirectory(this)
         val ext = if (item.isVideo) ".mp4" else ".jpg"
         val prefix = if (isBusinessMode) "whatsapp_business_status" else "whatsapp_status"
