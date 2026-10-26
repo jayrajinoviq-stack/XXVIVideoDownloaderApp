@@ -128,7 +128,19 @@ object DownloadStore {
                             title.endsWith(".m4a", ignoreCase = true) ||
                             title.contains("audio", ignoreCase = true) ||
                             (localPath != null && (localPath.endsWith(".mp3", ignoreCase = true) || localPath.endsWith(".m4a", ignoreCase = true)))
-                    val isVideo = !isAudio && (obj.optBoolean("isVideo", false) || title.endsWith(".mp4", ignoreCase = true) || (localPath != null && localPath.endsWith(".mp4", ignoreCase = true)))
+                    val isImage = !isAudio && (
+                            title.endsWith(".jpg", ignoreCase = true) ||
+                            title.endsWith(".jpeg", ignoreCase = true) ||
+                            title.endsWith(".png", ignoreCase = true) ||
+                            title.endsWith(".webp", ignoreCase = true) ||
+                            (localPath != null && (
+                                localPath.endsWith(".jpg", ignoreCase = true) ||
+                                localPath.endsWith(".jpeg", ignoreCase = true) ||
+                                localPath.endsWith(".png", ignoreCase = true) ||
+                                localPath.endsWith(".webp", ignoreCase = true)
+                            ))
+                    )
+                    val isVideo = !isAudio && !isImage && (obj.optBoolean("isVideo", false) || title.endsWith(".mp4", ignoreCase = true) || (localPath != null && localPath.endsWith(".mp4", ignoreCase = true)))
                     val defaultSizeStr = if (isAudio) "165 kB" else if (isVideo) "3.42 MB" else "15.67kB"
                     val sizeStr = obj.optString("sizeFormatted", defaultSizeStr)
                     val isDownloaded = if (obj.has("isDownloaded")) obj.getBoolean("isDownloaded") else true

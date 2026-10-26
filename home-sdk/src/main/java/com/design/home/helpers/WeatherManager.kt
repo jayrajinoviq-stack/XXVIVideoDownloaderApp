@@ -1,11 +1,6 @@
 package com.design.home.helpers
 
-import android.Manifest
 import android.content.Context
-import android.content.pm.PackageManager
-import android.location.Location
-import android.location.LocationManager
-import androidx.core.content.ContextCompat
 import com.design.commons.helpers.ensureBackgroundThread
 import com.design.home.R
 import com.design.home.widgets.SmartTopWidgetProvider
@@ -47,26 +42,8 @@ object WeatherManager {
                 return@ensureBackgroundThread
             }
 
-            var lat = 28.6139
-            var lon = 77.2090
-
-            try {
-                if (ContextCompat.checkSelfPermission(
-                        context,
-                        Manifest.permission.ACCESS_COARSE_LOCATION
-                    ) == PackageManager.PERMISSION_GRANTED
-                ) {
-                    val lm = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
-                    val loc: Location? = lm?.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
-                        ?: lm?.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER)
-                        ?: lm?.getLastKnownLocation(LocationManager.GPS_PROVIDER)
-                    if (loc != null) {
-                        lat = loc.latitude
-                        lon = loc.longitude
-                    }
-                }
-            } catch (_: Exception) {
-            }
+            val lat = 28.6139
+            val lon = 77.2090
 
             var success = false
             var conn: HttpURLConnection? = null

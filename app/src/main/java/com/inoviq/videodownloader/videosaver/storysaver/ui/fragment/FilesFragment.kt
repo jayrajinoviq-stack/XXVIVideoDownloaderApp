@@ -63,7 +63,12 @@ class FilesFragment : BottomSheetDialogFragment() {
             } else {
                 allFiles.add(0, item)
             }
-            if (_binding != null) updateFilter()
+            activity?.runOnUiThread {
+                if (_binding != null) {
+                    updateFilter()
+                    if (::adapter.isInitialized) adapter.notifyDataSetChanged()
+                }
+            }
         }
 
         override fun onProgressUpdated(item: MediaItem) {
@@ -73,11 +78,17 @@ class FilesFragment : BottomSheetDialogFragment() {
                 val dispIdx = displayedFiles.indexOfFirst { it.id == item.id || it.title == item.title }
                 if (dispIdx != -1 && ::adapter.isInitialized) {
                     displayedFiles[dispIdx] = item
-                    adapter.notifyItemChanged(dispIdx, DownloadedFilesAdapter.PAYLOAD_PROGRESS)
+                    activity?.runOnUiThread {
+                        if (::adapter.isInitialized) {
+                            adapter.notifyItemChanged(dispIdx, DownloadedFilesAdapter.PAYLOAD_PROGRESS)
+                        }
+                    }
                 }
             } else {
                 allFiles.add(0, item)
-                if (_binding != null) updateFilter()
+                activity?.runOnUiThread {
+                    if (_binding != null) updateFilter()
+                }
             }
         }
 
@@ -88,7 +99,11 @@ class FilesFragment : BottomSheetDialogFragment() {
                 val dispIdx = displayedFiles.indexOfFirst { it.id == item.id || it.title == item.title }
                 if (dispIdx != -1 && ::adapter.isInitialized) {
                     displayedFiles[dispIdx] = item
-                    adapter.notifyItemChanged(dispIdx, DownloadedFilesAdapter.PAYLOAD_PAUSE_RESUME)
+                    activity?.runOnUiThread {
+                        if (::adapter.isInitialized) {
+                            adapter.notifyItemChanged(dispIdx, DownloadedFilesAdapter.PAYLOAD_PAUSE_RESUME)
+                        }
+                    }
                 }
             }
         }
@@ -100,35 +115,58 @@ class FilesFragment : BottomSheetDialogFragment() {
                 val dispIdx = displayedFiles.indexOfFirst { it.id == item.id || it.title == item.title }
                 if (dispIdx != -1 && ::adapter.isInitialized) {
                     displayedFiles[dispIdx] = item
-                    adapter.notifyItemChanged(dispIdx, DownloadedFilesAdapter.PAYLOAD_PAUSE_RESUME)
+                    activity?.runOnUiThread {
+                        if (::adapter.isInitialized) {
+                            adapter.notifyItemChanged(dispIdx, DownloadedFilesAdapter.PAYLOAD_PAUSE_RESUME)
+                        }
+                    }
                 }
             }
         }
 
         override fun onDownloadCompleted(item: MediaItem) {
-            val idx = allFiles.indexOfFirst { it.id == item.id || (it.localPath != null && item.localPath != null && it.localPath == item.localPath) }
+            val idx = allFiles.indexOfFirst {
+                it.id == item.id ||
+                it.title == item.title ||
+                (it.localPath != null && item.localPath != null && it.localPath == item.localPath)
+            }
             if (idx != -1) {
                 allFiles[idx] = item
             } else {
                 allFiles.add(0, item)
             }
-            if (_binding != null) updateFilter()
+            activity?.runOnUiThread {
+                if (_binding != null) {
+                    updateFilter()
+                    if (::adapter.isInitialized) adapter.notifyDataSetChanged()
+                }
+            }
         }
 
         override fun onDownloadFailed(item: MediaItem, error: String) {
-            val idx = allFiles.indexOfFirst { it.id == item.id }
+            val idx = allFiles.indexOfFirst { it.id == item.id || it.title == item.title }
             if (idx != -1) {
                 allFiles.removeAt(idx)
-                if (_binding != null) updateFilter()
             }
             context?.let { DownloadStore.removeDownloadedItem(it, item) }
+            activity?.runOnUiThread {
+                if (_binding != null) {
+                    updateFilter()
+                    if (::adapter.isInitialized) adapter.notifyDataSetChanged()
+                }
+            }
         }
 
         override fun onDownloadCancelled(item: MediaItem) {
-            val idx = allFiles.indexOfFirst { it.id == item.id }
+            val idx = allFiles.indexOfFirst { it.id == item.id || it.title == item.title }
             if (idx != -1) {
                 allFiles.removeAt(idx)
-                if (_binding != null) updateFilter()
+            }
+            activity?.runOnUiThread {
+                if (_binding != null) {
+                    updateFilter()
+                    if (::adapter.isInitialized) adapter.notifyDataSetChanged()
+                }
             }
         }
     }

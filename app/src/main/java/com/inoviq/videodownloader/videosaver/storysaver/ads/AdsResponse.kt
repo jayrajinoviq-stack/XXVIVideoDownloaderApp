@@ -86,15 +86,15 @@ object AdsResponse {
 
     fun loadDebugAds() {
         Log.d(TAG, "loadDebugAds: Populating default test IDs for manual control")
-        isShowAdsURL = true
+        isShowAdsURL = false
         isNewAdsID = false
-        CLICK_THRESHOLD = 2L
-        REWARDED_CLICK_THRESHOLD = 1L
-        REWARDED_INTERSTITIAL_CLICK_THRESHOLD = 1L
+        CLICK_THRESHOLD = 10L
+        REWARDED_CLICK_THRESHOLD = 5L
+        REWARDED_INTERSTITIAL_CLICK_THRESHOLD = 5L
         APP_OPEN_CLICK_THRESHOLD = 1L
         APP_OPEN_RESUME_CLICK_THRESHOLD = 1L
-        isAppOpenOnResume = true
-        isLauncherAdsShow = true
+        isAppOpenOnResume = false
+        isLauncherAdsShow = false
 
         LAUNCHER_CLICK_THRESHOLD = 2L
 

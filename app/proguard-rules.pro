@@ -70,12 +70,10 @@
 # Gson deserializes JSON straight into VideoInfo/StreamInfo/etc via reflection.
 # Without this, getInfo()/fetchInfo() silently returns null/garbage fields in release.
 # ==============================================================================
--keep class com.yausername.youtubedl_android.** { *; }
--keep class com.yausername.ffmpeg.** { *; }
--keep class com.yausername.aria2c.** { *; }
--dontwarn com.yausername.youtubedl_android.**
--dontwarn com.yausername.ffmpeg.**
--dontwarn com.yausername.aria2c.**
+-keep class com.yausername.** { *; }
+-keep class org.apache.commons.compress.** { *; }
+-dontwarn com.yausername.**
+-dontwarn org.apache.commons.compress.**
 
 # ==============================================================================
 # Media3 / ExoPlayer (playback + MediaSessionService)
@@ -242,3 +240,10 @@
 -keep class com.design.home.** { *; }
 -dontwarn com.design.commons.**
 -dontwarn com.design.home.**
+
+# ==============================================================================
+# YoutubeDL / YT-DLP
+# ==============================================================================
+-keep class com.yausername.youtubedl_android.** { *; }
+-keep interface com.yausername.youtubedl_android.** { *; }
+-dontwarn com.yausername.youtubedl_android.**

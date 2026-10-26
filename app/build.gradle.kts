@@ -11,8 +11,8 @@ android {
     namespace = "com.inoviq.videodownloader.videosaver.storysaver"
     compileSdk = 36
 
-    val appVersionCode = 1
-    val appVersionName = "1.0.0"
+    val appVersionCode = 2
+    val appVersionName = "1.0.1"
     val currentDate: String = SimpleDateFormat("yyyy-MM-dd").format(Date())
 
     base {
@@ -27,6 +27,9 @@ android {
         versionName = appVersionName
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        ndk {
+            abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64"))
+        }
     }
 
     buildTypes {
@@ -53,6 +56,12 @@ android {
         viewBinding = true
         dataBinding = true
         buildConfig = true
+    }
+
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+        }
     }
 }
 
@@ -92,4 +101,6 @@ dependencies {
 
     implementation("com.google.android.play:app-update:2.1.0")
     implementation("com.google.android.play:app-update-ktx:2.1.0")
+
+    implementation("io.github.junkfood02.youtubedl-android:library:0.18.1")
 }

@@ -204,7 +204,7 @@ class DownloadBottomSheetFragment : BottomSheetDialogFragment() {
             val finalItem = item.copy(
                 title = baseTitle,
                 url = targetUrl,
-                isVideo = !isAudio,
+                isVideo = if (isAudio) false else item.isVideo,
                 isAudio = isAudio,
                 quality = selectedQuality,
                 sizeFormatted = when (selectedQuality) {
@@ -337,16 +337,20 @@ class DownloadBottomSheetFragment : BottomSheetDialogFragment() {
     }
 
     private fun triggerDownload(items: List<MediaItem>) {
-        if (!isAdded) return
         val count = items.size
-        Toast.makeText(
-            requireContext(),
-            if (count == 1) "Downloading ${items.first().title}..." else "Downloading $count files...",
-            Toast.LENGTH_SHORT
-        ).show()
+        val ctx = context ?: activity?.applicationContext
+        if (ctx != null) {
+            Toast.makeText(
+                ctx,
+                if (count == 1) "Downloading ${items.first().title}..." else "Downloading $count files...",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
 
         onDownloadClickListener?.invoke(items)
-        dismiss()
+        try {
+            dismissAllowingStateLoss()
+        } catch (_: Exception) {}
     }
 
     private fun updateDownloadButtonState() {

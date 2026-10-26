@@ -20,6 +20,16 @@ class MyApp : Application() {
         // Initialize Ads SDK and preload cached units
         AdManager.init(this)
 
+        // Initialize YoutubeDL for fast instant media downloads and stream muxing (FFmpeg binary is bundled)
+        kotlin.concurrent.thread(name = "YoutubeDL_Init", isDaemon = true) {
+            try {
+                com.yausername.youtubedl_android.YoutubeDL.getInstance().init(this)
+                android.util.Log.d("MyApp", "YoutubeDL initialized successfully with FFmpeg bundled")
+            } catch (e: Exception) {
+                android.util.Log.e("MyApp", "Failed to initialize YoutubeDL in MyApp", e)
+            }
+        }
+
         // Listen for LauncherHomeActivity resume to silently refresh Firebase Remote Config periodically
         registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
             override fun onActivityResumed(activity: Activity) {

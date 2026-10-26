@@ -39,9 +39,11 @@ class DownloadedFilesAdapter(
     val selectedItems = mutableSetOf<String>()
 
     fun updateList(newList: List<MediaItem>) {
-        val diffCallback = MediaItemDiffCallback(this.files, newList)
+        val oldSnapshot = ArrayList(this.files)
+        val newSnapshot = ArrayList(newList)
+        val diffCallback = MediaItemDiffCallback(oldSnapshot, newSnapshot)
         val diffResult = DiffUtil.calculateDiff(diffCallback)
-        this.files = newList.toMutableList()
+        this.files = newSnapshot
         diffResult.dispatchUpdatesTo(this)
     }
 
@@ -133,11 +135,17 @@ class DownloadedFilesAdapter(
                 if (payloadSet.contains(PAYLOAD_PROGRESS) || payloadSet.contains(PAYLOAD_PAUSE_RESUME)) {
                     if (isDownloading) {
                         binding.pbDownloadProgress.visibility = View.VISIBLE
-                        binding.pbDownloadProgress.progress = item.downloadProgress
-                        binding.tvFileSize.text = if (item.isPaused) {
-                            "${item.downloadProgress}% • Paused"
+                        if (item.downloadProgress > 0) {
+                            binding.pbDownloadProgress.isIndeterminate = false
+                            binding.pbDownloadProgress.progress = item.downloadProgress
+                            binding.tvFileSize.text = if (item.isPaused) {
+                                "${item.downloadProgress}% • Paused"
+                            } else {
+                                "${item.downloadProgress}% • Downloading..."
+                            }
                         } else {
-                            "${item.downloadProgress}% • Downloading..."
+                            binding.pbDownloadProgress.isIndeterminate = !item.isPaused
+                            binding.tvFileSize.text = if (item.isPaused) "Paused" else "Downloading..."
                         }
                         binding.llActions.visibility = View.GONE
                         binding.llDownloadControls.visibility = if (isMultiSelectMode) View.GONE else View.VISIBLE
@@ -146,6 +154,7 @@ class DownloadedFilesAdapter(
                         )
                     } else {
                         binding.pbDownloadProgress.visibility = View.GONE
+                        binding.pbDownloadProgress.isIndeterminate = false
                         binding.tvFileSize.text = "${item.sizeFormatted} • Saved"
                         binding.llDownloadControls.visibility = View.GONE
                         binding.llActions.visibility = if (isMultiSelectMode) View.GONE else View.VISIBLE
@@ -183,15 +192,29 @@ class DownloadedFilesAdapter(
             val isDownloading = !item.isDownloaded
             if (isDownloading) {
                 binding.pbDownloadProgress.visibility = View.VISIBLE
-                binding.pbDownloadProgress.progress = item.downloadProgress
-                binding.tvFileSize.text = if (item.isPaused) {
-                    "${item.downloadProgress}% • Paused"
+                if (item.downloadProgress > 0) {
+                    binding.pbDownloadProgress.isIndeterminate = false
+                    binding.pbDownloadProgress.progress = item.downloadProgress
+                    binding.tvFileSize.text = if (item.isPaused) {
+                        "${item.downloadProgress}% • Paused"
+                    } else {
+                        "${item.downloadProgress}% • Downloading..."
+                    }
                 } else {
-                    "${item.downloadProgress}% • Downloading..."
+                    binding.pbDownloadProgress.isIndeterminate = !item.isPaused
+                    binding.tvFileSize.text = if (item.isPaused) "Paused" else "Downloading..."
                 }
+                binding.llActions.visibility = View.GONE
+                binding.llDownloadControls.visibility = if (isMultiSelectMode) View.GONE else View.VISIBLE
+                binding.btnPauseResume.setImageResource(
+                    if (item.isPaused) R.drawable.ic_play_arrow else R.drawable.ic_pause
+                )
             } else {
                 binding.pbDownloadProgress.visibility = View.GONE
+                binding.pbDownloadProgress.isIndeterminate = false
                 binding.tvFileSize.text = "${item.sizeFormatted} • Saved"
+                binding.llDownloadControls.visibility = View.GONE
+                binding.llActions.visibility = if (isMultiSelectMode) View.GONE else View.VISIBLE
             }
 
             when {

@@ -156,21 +156,57 @@ object DownloadHelper {
         type: String, // "video", "image", or "story"
         customName: String? = null,
         thumbUrl: String? = null,
+        quality: String? = null,
+        pageUrl: String? = null,   // Canonical page URL (e.g. https://instagram.com/p/xxx/) for YT-DLP
         onComplete: ((MediaItem) -> Unit)? = null
     ): MediaItem? {
         if (url.isBlank()) return null
         val cleanUrl = cleanMediaUrl(url)
 
-        val isAudio = type.contains("audio", ignoreCase = true) || customName?.contains("audio", ignoreCase = true) == true
-        val isVideo = !isAudio && (type.contains("video", ignoreCase = true) ||
-                type.contains("reel", ignoreCase = true) ||
-                cleanUrl.contains(".mp4") ||
-                cleanUrl.contains(".webm"))
+        val cleanUrlNoQuery = cleanUrl.substringBefore("?")
+        val hasImageExtension = cleanUrlNoQuery.endsWith(".jpg", ignoreCase = true) ||
+                cleanUrlNoQuery.endsWith(".jpeg", ignoreCase = true) ||
+                cleanUrlNoQuery.endsWith(".png", ignoreCase = true) ||
+                cleanUrlNoQuery.endsWith(".webp", ignoreCase = true) ||
+                cleanUrlNoQuery.endsWith(".gif", ignoreCase = true) ||
+                cleanUrl.contains(".jpg?", ignoreCase = true) ||
+                cleanUrl.contains(".jpeg?", ignoreCase = true) ||
+                cleanUrl.contains(".png?", ignoreCase = true) ||
+                cleanUrl.contains(".webp?", ignoreCase = true) ||
+                cleanUrl.contains(".jpg&", ignoreCase = true) ||
+                cleanUrl.contains(".png&", ignoreCase = true) ||
+                cleanUrl.contains(".webp&", ignoreCase = true) ||
+                cleanUrl.contains(".jpg/", ignoreCase = true) ||
+                cleanUrl.contains(".png/", ignoreCase = true)
+
+        val hasVideoExtension = cleanUrlNoQuery.endsWith(".mp4", ignoreCase = true) ||
+                cleanUrlNoQuery.endsWith(".webm", ignoreCase = true) ||
+                cleanUrlNoQuery.endsWith(".mkv", ignoreCase = true) ||
+                cleanUrlNoQuery.endsWith(".mov", ignoreCase = true) ||
+                cleanUrl.contains(".mp4?", ignoreCase = true) ||
+                cleanUrl.contains(".webm?", ignoreCase = true)
+
+        val isAudio = !hasImageExtension && !hasVideoExtension && (
+                type.contains("audio", ignoreCase = true) ||
+                customName?.contains("audio", ignoreCase = true) == true
+        )
+
+        val isImage = !isAudio && (hasImageExtension || (
+                !hasVideoExtension && (
+                        type.contains("image", ignoreCase = true) ||
+                        type.contains("photo", ignoreCase = true) ||
+                        type.contains("picture", ignoreCase = true) ||
+                        type.contains("img", ignoreCase = true) ||
+                        customName?.contains("photo", ignoreCase = true) == true ||
+                        customName?.contains("img", ignoreCase = true) == true
+                )
+        ))
+        val isVideo = !isAudio && !isImage
         val ext = when {
             isAudio -> if (customName?.endsWith(".mp3", ignoreCase = true) == true) ".mp3" else ".m4a"
             isVideo -> ".mp4"
-            cleanUrl.contains(".png", ignoreCase = true) -> ".png"
-            cleanUrl.contains(".webp", ignoreCase = true) -> ".webp"
+            cleanUrlNoQuery.endsWith(".png", ignoreCase = true) || customName?.endsWith(".png", true) == true || cleanUrl.contains(".png", true) -> ".png"
+            cleanUrlNoQuery.endsWith(".webp", ignoreCase = true) || customName?.endsWith(".webp", true) == true || cleanUrl.contains(".webp", true) -> ".webp"
             else -> ".jpg"
         }
 
@@ -229,7 +265,9 @@ object DownloadHelper {
             isAudio = isAudio,
             downloadProgress = 0,
             isDownloaded = false,
-            localPath = destFile.absolutePath
+            localPath = destFile.absolutePath,
+            quality = quality ?: if (isAudio) "Audio" else if (isVideo) "720P" else null,
+            pageUrl = pageUrl
         )
 
         // Save to persistent store so it appears in Files tab immediately with progress indicator

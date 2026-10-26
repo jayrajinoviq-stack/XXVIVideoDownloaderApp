@@ -7,7 +7,6 @@
     android:background="#F7F7F7"
     android:fitsSystemWindows="true">
 
-    <!-- Top Skip Button -->
     <TextView
         android:id="@+id/btnSkip"
         android:layout_width="wrap_content"
@@ -25,7 +24,6 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <!-- Center Card Illustration: Full image with top/bottom placeholders and highlighted app card -->
     <ImageView
         android:id="@+id/ivCenterCard"
         android:layout_width="0dp"
@@ -105,7 +103,6 @@
             android:textStyle="bold" />
     </FrameLayout>
 
-    <!-- Footer Information -->
     <TextView
         android:id="@+id/tvFooterInfo"
         android:layout_width="0dp"

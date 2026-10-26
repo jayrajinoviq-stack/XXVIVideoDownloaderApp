@@ -186,7 +186,7 @@ object FacebookMediaSniffer {
                                     if (window.__XXVI_RECENT_VIDEOS__.length > 50) {
                                         window.__XXVI_RECENT_VIDEOS__.pop();
                                     }
-                                    if (window.XXVIBridge) {
+                                    if (!isChunk && window.XXVIBridge) {
                                         var pref = getPlatformPrefix();
                                         window.XXVIBridge.onMediaDetected(clean, 'video', pref + '_video', '');
                                     }

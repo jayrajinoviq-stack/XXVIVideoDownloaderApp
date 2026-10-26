@@ -18,5 +18,6 @@ data class MediaItem(
     var localPath: String? = null,
     val hdUrl: String? = null,
     val sdUrl: String? = null,
-    var quality: String? = null
+    var quality: String? = null,
+    val pageUrl: String? = null   // The canonical page URL (e.g. https://instagram.com/p/xxx/) used by YT-DLP
 ) : Serializable

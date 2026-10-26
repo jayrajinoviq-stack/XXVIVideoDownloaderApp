@@ -952,7 +952,11 @@ class BrowserFragment : Fragment() {
                 @JavascriptInterface
                 fun onMediaDetected(url: String, type: String, title: String, thumb: String) {
                     activity?.runOnUiThread {
-                        addDetectedMedia(title, url, type.equals("video", true), thumb)
+                        val isImg = type.contains("image", true) || type.contains("photo", true) ||
+                                url.contains(".jpg", true) || url.contains(".jpeg", true) ||
+                                url.contains(".png", true) || url.contains(".webp", true)
+                        val isVideo = if (isImg) false else type.equals("video", true)
+                        addDetectedMedia(title, url, isVideo, thumb)
                     }
                 }
 
@@ -1038,7 +1042,12 @@ class BrowserFragment : Fragment() {
                 request: WebResourceRequest?
             ): WebResourceResponse? {
                 val url = request?.url?.toString() ?: ""
-                val isVideo = url.endsWith(".mp4", ignoreCase = true) ||
+                val isImage = url.contains(".jpg", ignoreCase = true) ||
+                        url.contains(".jpeg", ignoreCase = true) ||
+                        url.contains(".png", ignoreCase = true) ||
+                        url.contains(".webp", ignoreCase = true) ||
+                        url.contains(".gif", ignoreCase = true)
+                val isVideo = !isImage && (url.endsWith(".mp4", ignoreCase = true) ||
                         url.contains(".mp4?", ignoreCase = true) ||
                         url.contains(".webm", ignoreCase = true) ||
                         url.contains(".m4v", ignoreCase = true) ||
@@ -1049,16 +1058,16 @@ class BrowserFragment : Fragment() {
                         url.contains("video.fsin", ignoreCase = true) ||
                         url.contains("video.fmaa", ignoreCase = true) ||
                         (url.contains("video-", ignoreCase = true) && url.contains("fbcdn.net", ignoreCase = true)) ||
-                        (url.contains("fbcdn.net", ignoreCase = true) && (url.contains("/v/t") || url.contains("bytestart=")) && !url.contains(".jpg") && !url.contains(".png") && !url.contains(".webp")) ||
+                        (url.contains("fbcdn.net", ignoreCase = true) && (url.contains("/v/t") || url.contains("bytestart="))) ||
                         (url.contains("cdninstagram.com", ignoreCase = true) && (url.contains(".mp4") || url.contains("/v/"))) ||
                         url.contains("tiktokcdn.com", ignoreCase = true) ||
                         url.contains("byteoversea.com", ignoreCase = true) ||
                         url.contains("video.twimg.com", ignoreCase = true) ||
                         url.contains("whatsapp.net", ignoreCase = true) ||
                         url.contains("videoplayback", ignoreCase = true) ||
-                        url.contains("mime=video", ignoreCase = true)
+                        url.contains("mime=video", ignoreCase = true))
 
-                if (isVideo) {
+                if (isVideo && !isSingleTrackDash(url)) {
                     lastInterceptedVideoUrl = url
                     lastInterceptedVideoTime = System.currentTimeMillis()
                     val webUrl = savedActiveUrl
@@ -1070,6 +1079,21 @@ class BrowserFragment : Fragment() {
                     }
                 }
                 return super.shouldInterceptRequest(view, request)
+            }
+
+            private fun isSingleTrackDash(url: String): Boolean {
+                if (url.contains("bytestart=", true) || url.contains("byteend=", true)) return true
+                if (!url.contains("fbcdn.net", true) && !url.contains("cdninstagram.com", true)) return false
+                val efg = Regex("[?&]efg=([^&]+)").find(url)?.groupValues?.get(1) ?: return false
+                return try {
+                    val decoded = String(
+                        android.util.Base64.decode(
+                            java.net.URLDecoder.decode(efg, "UTF-8"),
+                            android.util.Base64.URL_SAFE or android.util.Base64.NO_PADDING
+                        )
+                    ).lowercase()
+                    decoded.contains("audio") || (decoded.contains("dash") && !decoded.contains("progressive"))
+                } catch (_: Exception) { false }
             }
         }
 
@@ -1248,7 +1272,7 @@ class BrowserFragment : Fragment() {
         selectedItems.forEach { selected ->
             var actualUrl = selected.url
             if (actualUrl.isBlank() || actualUrl.startsWith("blob:")) {
-                actualUrl = (lastInterceptedVideoUrl ?: "").ifBlank {
+                actualUrl = (if (selected.isVideo) lastInterceptedVideoUrl ?: "" else "").ifBlank {
                     detectedMediaList.firstOrNull { it.isVideo == selected.isVideo }?.url ?: ""
                 }
             }
@@ -1259,7 +1283,9 @@ class BrowserFragment : Fragment() {
                 url = actualUrl,
                 type = if (selected.isAudio) "audio" else if (selected.isVideo) "video" else "image",
                 customName = selected.title,
-                thumbUrl = selected.thumbnailUrl
+                thumbUrl = selected.thumbnailUrl,
+                quality = selected.quality,
+                pageUrl = selected.pageUrl ?: savedActiveUrl.ifBlank { null }
             ) { updatedItem ->
                 activity?.runOnUiThread {
                     onMediaDownloaded?.invoke(listOf(updatedItem))
@@ -1293,16 +1319,30 @@ class BrowserFragment : Fragment() {
         if (!isAdded) return
 
         var targetUrl = url
-        val isExplicitImage = type.contains("image", true) ||
+        val cleanUrlNoQuery = DownloadHelper.cleanMediaUrl(url).substringBefore("?")
+        val hasImgExt = cleanUrlNoQuery.endsWith(".jpg", true) ||
+                cleanUrlNoQuery.endsWith(".jpeg", true) ||
+                cleanUrlNoQuery.endsWith(".png", true) ||
+                cleanUrlNoQuery.endsWith(".webp", true) ||
+                cleanUrlNoQuery.endsWith(".gif", true) ||
+                url.contains(".jpg?", true) ||
+                url.contains(".jpeg?", true) ||
+                url.contains(".png?", true) ||
+                url.contains(".webp?", true) ||
+                url.contains(".jpg&", true) ||
+                url.contains(".png&", true) ||
+                url.contains(".webp&", true) ||
+                url.contains(".jpg/", true) ||
+                url.contains(".png/", true)
+
+        val isExplicitImage = hasImgExt ||
+                type.contains("image", true) ||
                 type.contains("photo", true) ||
                 type.contains("img", true) ||
-                type.contains("picture", true) ||
-                url.endsWith(".jpg", true) ||
-                url.endsWith(".png", true) ||
-                url.endsWith(".webp", true) ||
-                url.endsWith(".jpeg", true)
+                type.contains("picture", true)
 
-        val isExplicitVideo = type.contains("video", true) ||
+        val isExplicitVideo = !hasImgExt && (
+                type.contains("video", true) ||
                 type.contains("reel", true) ||
                 type.contains("clip", true) ||
                 type.contains("movie", true) ||
@@ -1310,6 +1350,7 @@ class BrowserFragment : Fragment() {
                 url.contains(".webm", true) ||
                 url.contains(".m3u8", true) ||
                 url.contains("video.xx.fbcdn.net", true)
+        )
 
         val isVid = if (isExplicitImage) false else isExplicitVideo
 
@@ -1359,7 +1400,8 @@ class BrowserFragment : Fragment() {
                 isVideo = isVid,
                 isChecked = true,
                 hdUrl = detected?.hdUrl ?: if (targetUrl.contains("hd", ignoreCase = true)) targetUrl else null,
-                sdUrl = detected?.sdUrl ?: if (!targetUrl.contains("hd", ignoreCase = true)) targetUrl else null
+                sdUrl = detected?.sdUrl ?: if (!targetUrl.contains("hd", ignoreCase = true)) targetUrl else null,
+                pageUrl = savedActiveUrl.ifBlank { null }
             )
             addDetectedMedia(cleanName, targetUrl, isVid, cleanThumb, mediaItem.hdUrl, mediaItem.sdUrl)
 
@@ -1421,7 +1463,8 @@ class BrowserFragment : Fragment() {
                             isVideo = isVid,
                             isChecked = true,
                             hdUrl = detected?.hdUrl ?: if (finalUrl.contains("hd", ignoreCase = true)) finalUrl else null,
-                            sdUrl = detected?.sdUrl ?: if (!finalUrl.contains("hd", ignoreCase = true)) finalUrl else null
+                            sdUrl = detected?.sdUrl ?: if (!finalUrl.contains("hd", ignoreCase = true)) finalUrl else null,
+                            pageUrl = savedActiveUrl.ifBlank { null }
                         )
                         addDetectedMedia(cleanName, finalUrl, isVid, resolvedThumb, item.hdUrl, item.sdUrl)
                         sheet.updateMediaItems(listOf(item))
@@ -1485,7 +1528,8 @@ class BrowserFragment : Fragment() {
                     thumbnailUrl = thumb,
                     sizeFormatted = if (isVideo) "5.19MB" else "15.67kB",
                     isVideo = isVideo,
-                    isChecked = isChecked
+                    isChecked = isChecked,
+                    pageUrl = savedActiveUrl.ifBlank { null }
                 )
                 candidates.add(item)
                 addDetectedMedia(itemTitle, url, isVideo, thumb)
@@ -1504,7 +1548,9 @@ class BrowserFragment : Fragment() {
                         url = selected.url,
                         type = if (selected.isAudio) "audio" else if (selected.isVideo) "video" else "image",
                         customName = selected.title,
-                        thumbUrl = selected.thumbnailUrl
+                        thumbUrl = selected.thumbnailUrl,
+                        quality = selected.quality,
+                        pageUrl = selected.pageUrl ?: savedActiveUrl.ifBlank { null }
                     ) { updatedItem ->
                         activity?.runOnUiThread {
                             onMediaDownloaded?.invoke(listOf(updatedItem))
@@ -1547,11 +1593,24 @@ class BrowserFragment : Fragment() {
         sdUrl: String? = null
     ) {
         if (url.isBlank() || !url.startsWith("http") || url.startsWith("blob:")) return
-        if (!isVideo && DownloadHelper.isProfileOrAvatarUrl(url)) return
+        val cleanUrl = DownloadHelper.cleanMediaUrl(url)
+        val cleanUrlNoQuery = cleanUrl.substringBefore("?")
+        val isReallyImage = cleanUrlNoQuery.endsWith(".jpg", true) ||
+                cleanUrlNoQuery.endsWith(".jpeg", true) ||
+                cleanUrlNoQuery.endsWith(".png", true) ||
+                cleanUrlNoQuery.endsWith(".webp", true) ||
+                cleanUrlNoQuery.endsWith(".gif", true) ||
+                url.contains(".jpg?", true) ||
+                url.contains(".jpeg?", true) ||
+                url.contains(".png?", true) ||
+                url.contains(".webp?", true)
+        val finalIsVideo = if (isReallyImage) false else isVideo
+
+        if (!finalIsVideo && DownloadHelper.isProfileOrAvatarUrl(url)) return
         val currentWebUrl = savedActiveUrl
         val platform = DownloadHelper.derivePlatformPrefix(if (currentWebUrl.isNotBlank() && !currentWebUrl.startsWith("about:") && !currentWebUrl.startsWith("home")) currentWebUrl else url)
         val cleanName = if (name.isBlank() || name.equals("facebook_photo", true) || name.equals("facebook_video", true) || name.equals("media", true)) {
-            "${platform}_${if (isVideo) "video" else "photo"}_${System.currentTimeMillis() % 100000000}"
+            "${platform}_${if (finalIsVideo) "video" else "photo"}_${System.currentTimeMillis() % 100000000}"
         } else if (!name.startsWith(platform, ignoreCase = true) && !name.contains("_")) {
             "${platform}_$name"
         } else {
@@ -1577,8 +1636,8 @@ class BrowserFragment : Fragment() {
                     title = cleanName,
                     url = url,
                     thumbnailUrl = if (!thumb.isNullOrBlank() && thumb.startsWith("http")) thumb else url,
-                    sizeFormatted = if (isVideo) "3.42 MB" else "15.67kB",
-                    isVideo = isVideo,
+                    sizeFormatted = if (finalIsVideo) "3.42 MB" else "15.67kB",
+                    isVideo = finalIsVideo,
                     hdUrl = resolvedHd,
                     sdUrl = resolvedSd
                 )
