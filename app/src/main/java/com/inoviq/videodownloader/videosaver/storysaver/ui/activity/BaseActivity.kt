@@ -21,6 +21,7 @@ open class BaseActivity : AppCompatActivity() {
 
     lateinit var networkLiveObserver: NetworkLiveObserver
         private set
+        
 
     override fun attachBaseContext(newBase: Context) {
         val configuration = newBase.resources.configuration
@@ -42,6 +43,7 @@ open class BaseActivity : AppCompatActivity() {
             object : OnBackPressedCallback(true) {
                 override fun handleOnBackPressed() {
                     handleBackPress()
+                    
                 }
             }
         )

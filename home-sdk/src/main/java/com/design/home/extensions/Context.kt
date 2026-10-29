@@ -81,20 +81,33 @@ fun Context.getCellCount(size: Int): Int {
 }
 
 fun Context.isDefaultLauncher(): Boolean {
-    return if (isQPlus()) {
-        with(roleManager) {
-            isRoleAvailable(RoleManager.ROLE_HOME) && isRoleHeld(RoleManager.ROLE_HOME)
+    return try {
+        val intent = Intent(Intent.ACTION_MAIN).apply {
+            addCategory(Intent.CATEGORY_HOME)
         }
-    } else {
-        val filters = ArrayList<IntentFilter>()
-        val activities = ArrayList<ComponentName>()
-        @Suppress("DEPRECATION")
-        packageManager.getPreferredActivities(filters, activities, null)
-        return activities.indices.any { i ->
-            activities[i].packageName == packageName &&
-                    filters[i].hasAction(Intent.ACTION_MAIN) &&
-                    filters[i].hasCategory(Intent.CATEGORY_HOME)
+        val resolveInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            packageManager.resolveActivity(
+                intent,
+                android.content.pm.PackageManager.ResolveInfoFlags.of(android.content.pm.PackageManager.MATCH_DEFAULT_ONLY.toLong())
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            packageManager.resolveActivity(intent, android.content.pm.PackageManager.MATCH_DEFAULT_ONLY)
         }
+        val currentPackage = resolveInfo?.activityInfo?.packageName
+        if (currentPackage == null || currentPackage == "android" || currentPackage != packageName) {
+            return false
+        }
+        if (isQPlus()) {
+            with(roleManager) {
+                if (isRoleAvailable(RoleManager.ROLE_HOME)) {
+                    return isRoleHeld(RoleManager.ROLE_HOME)
+                }
+            }
+        }
+        true
+    } catch (_: Exception) {
+        false
     }
 }
 

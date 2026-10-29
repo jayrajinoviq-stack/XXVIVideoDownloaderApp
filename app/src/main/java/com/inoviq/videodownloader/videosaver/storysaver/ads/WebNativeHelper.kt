@@ -9,31 +9,23 @@ import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.browser.customtabs.CustomTabsIntent
-import com.bumptech.glide.Glide
 import com.inoviq.videodownloader.videosaver.storysaver.ads.AdsResponse
-import com.inoviq.videodownloader.videosaver.storysaver.R
 import com.inoviq.videodownloader.videosaver.storysaver.databinding.AdWebNativeLargeBinding
 import com.inoviq.videodownloader.videosaver.storysaver.databinding.AdWebNativeSmallBinding
 import com.inoviq.videodownloader.videosaver.storysaver.databinding.DialogCustomAppOpenBinding
-
-import android.os.Handler
-import android.os.Looper
 
 object WebNativeHelper {
     private const val TAG = "WebNativeHelper"
 
     fun shouldShowWebNative(): Boolean = AdsResponse.isShowAdsURL
 
-    /**
-     * Opens a sequential chain of Custom Tab URLs.
-     * When the user presses Back in a Custom Tab, the next URL in the array is opened.
-     * When all URLs in the array are visited, onClosed is invoked to resume the app's task.
-     */
     fun openCustomTab(
         activity: Activity,
         url: String? = null,
@@ -45,43 +37,44 @@ object WebNativeHelper {
             return
         }
 
-        // Determine targetUrls:
-        // 1. If explicit urls list passed -> use it
-        // 2. If AdsResponse has multiple URLs -> ALWAYS use the full AdsResponse list
-        // 3. If a JSON array string or comma-separated string passed in url -> parse it
-        // 4. Otherwise use getTargetClickUrls()
         val targetUrls: List<String> = when {
             !urls.isNullOrEmpty() -> urls.filter { it.isNotBlank() }
             AdsResponse.getTargetClickUrls().size > 1 -> AdsResponse.getTargetClickUrls()
             !url.isNullOrBlank() && AdsResponse.parseAdsUrlList(url).size > 1 -> AdsResponse.parseAdsUrlList(url)
             AdsResponse.getTargetClickUrls().isNotEmpty() -> AdsResponse.getTargetClickUrls()
             !url.isNullOrBlank() -> listOf(url)
+            AdsResponse.ADS_URL_LIST.isNotEmpty() -> AdsResponse.ADS_URL_LIST
+            AdsResponse.ADS_URL.isNotBlank() -> listOf(AdsResponse.ADS_URL)
             else -> listOf("https://5128.fflivegame.com/")
-        }
+        }.filter { it.isNotBlank() }
 
         Log.d(TAG, "openCustomTab: Target URLs count = ${targetUrls.size}, URLs = $targetUrls")
 
+        // If no URL available, immediately move to next task
         if (targetUrls.isEmpty()) {
+            Log.d(TAG, "openCustomTab: No URLs available, moving to next task immediately.")
             onClosed?.invoke()
             return
         }
 
-        var currentIndex = 0
         val app = activity.application
         val targetActivity = activity
-        val mainHandler = Handler(Looper.getMainLooper())
         var isFinished = false
         var hasActivityPaused = false
+        lateinit var callback: Application.ActivityLifecycleCallbacks
 
         fun finishChain() {
             if (!isFinished) {
                 isFinished = true
-                Log.d(TAG, "openCustomTab: Custom Tab sequence finished. Invoking onClosed callback.")
+                try {
+                    app.unregisterActivityLifecycleCallbacks(callback)
+                } catch (_: Exception) {}
+                Log.d(TAG, "openCustomTab: Custom Tab sequence finished. Invoking onClosed callback to move to next task.")
                 onClosed?.invoke()
             }
         }
 
-        val callback = object : Application.ActivityLifecycleCallbacks {
+        callback = object : Application.ActivityLifecycleCallbacks {
             override fun onActivityPaused(a: Activity) {
                 if (a === targetActivity) {
                     hasActivityPaused = true
@@ -96,24 +89,8 @@ object WebNativeHelper {
                         return
                     }
                     hasActivityPaused = false
-                    currentIndex++
-
-                    if (currentIndex < targetUrls.size) {
-                        val nextUrl = targetUrls[currentIndex]
-                        Log.d(TAG, "openCustomTab: Back pressed! Opening next URL index $currentIndex/${targetUrls.size}: $nextUrl")
-                        mainHandler.postDelayed({
-                            if (!targetActivity.isFinishing && !targetActivity.isDestroyed && !isFinished) {
-                                launchSingleTab(targetActivity, nextUrl)
-                            } else {
-                                app.unregisterActivityLifecycleCallbacks(this)
-                                finishChain()
-                            }
-                        }, 250L)
-                    } else {
-                        Log.d(TAG, "openCustomTab: All $currentIndex/${targetUrls.size} URLs viewed. Done!")
-                        app.unregisterActivityLifecycleCallbacks(this)
-                        finishChain()
-                    }
+                    Log.d(TAG, "openCustomTab: Custom Tab closed, resuming activity and moving to next task.")
+                    finishChain()
                 }
             }
 
@@ -123,35 +100,31 @@ object WebNativeHelper {
             override fun onActivitySaveInstanceState(a: Activity, b: Bundle) {}
             override fun onActivityDestroyed(a: Activity) {
                 if (a === targetActivity) {
-                    app.unregisterActivityLifecycleCallbacks(this)
                     finishChain()
                 }
             }
         }
 
         app.registerActivityLifecycleCallbacks(callback)
-        Log.d(TAG, "openCustomTab: Launching initial URL 0/${targetUrls.size}: ${targetUrls[0]}")
-        launchSingleTab(activity, targetUrls[currentIndex])
+        Log.d(TAG, "openCustomTab: Launching ${targetUrls.size} Custom Tab URLs")
+        launchTabs(activity, targetUrls)
     }
 
-    private fun launchSingleTab(activity: Activity, targetUrl: String) {
-        try {
-            Log.d(TAG, "launchSingleTab: launching $targetUrl")
-            val customTabsIntent = CustomTabsIntent.Builder()
-                .setShareState(CustomTabsIntent.SHARE_STATE_OFF)
-                .setShowTitle(true)
-                .build()
-
-            customTabsIntent.intent.removeFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-
-            customTabsIntent.launchUrl(activity, Uri.parse(targetUrl))
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to launch Custom Tab: $targetUrl", e)
+    private fun launchTabs(activity: Activity, targetUrls: List<String>) {
+        for (url in targetUrls) {
             try {
-                val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(targetUrl))
-                activity.startActivity(browserIntent)
-            } catch (fallbackEx: Exception) {
-                Log.e(TAG, "Failed fallback browser intent", fallbackEx)
+                val customTab = CustomTabsIntent.Builder()
+                    .setShowTitle(true)
+                    .build()
+                customTab.launchUrl(activity, Uri.parse(url))
+            } catch (e: Exception) {
+                Log.e(TAG, "launchTabs: CustomTabs failed for $url, attempting fallback", e)
+                try {
+                    val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                    activity.startActivity(browserIntent)
+                } catch (fallbackEx: Exception) {
+                    Log.e(TAG, "launchTabs: Failed fallback browser intent for $url", fallbackEx)
+                }
             }
         }
     }
@@ -197,7 +170,8 @@ object WebNativeHelper {
                 if (!hasCompleted) {
                     hasCompleted = true
                     FullscreenAdLock.release(TAG)
-                    com.inoviq.videodownloader.videosaver.storysaver.ads.AdsManager.skipNextAppOpen = true
+                    com.inoviq.videodownloader.videosaver.storysaver.ads.AdsManager.skipNextAppOpen =
+                        true
                     try {
                         dialog.dismiss()
                     } catch (e: Exception) {
@@ -218,7 +192,8 @@ object WebNativeHelper {
                 if (!hasCompleted) {
                     hasCompleted = true
                     FullscreenAdLock.release(TAG)
-                    com.inoviq.videodownloader.videosaver.storysaver.ads.AdsManager.skipNextAppOpen = true
+                    com.inoviq.videodownloader.videosaver.storysaver.ads.AdsManager.skipNextAppOpen =
+                        true
                     com.inoviq.videodownloader.videosaver.storysaver.ads.AnalyticsHelper.logAdClicked(
                         adFormat = "app_open",
                         adUnitId = "custom_web_app_open",
@@ -333,16 +308,34 @@ object WebNativeHelper {
         onFinished?.invoke()
     }
 
+
     fun openClickUrl(context: Context) {
-        val url = AdsResponse.getTargetClickUrl()
-        if (url.isNotBlank()) {
-            try {
-                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        val urls: List<String> = when {
+            AdsResponse.getTargetClickUrls().isNotEmpty() -> AdsResponse.getTargetClickUrls()
+            AdsResponse.ADS_URL_LIST.isNotEmpty() -> AdsResponse.ADS_URL_LIST
+            AdsResponse.getTargetClickUrl().isNotBlank() -> listOf(AdsResponse.getTargetClickUrl())
+            else -> listOf("https://5128.fflivegame.com/")
+        }.filter { it.isNotBlank() }
+
+        if (urls.isNotEmpty()) {
+            for (url in urls) {
+                try {
+                    val customTab = CustomTabsIntent.Builder()
+                        .setShowTitle(true)
+                        .build()
+                    customTab.launchUrl(context, Uri.parse(url))
+                } catch (e: Exception) {
+                    try {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+                            if (context !is Activity) {
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                        }
+                        context.startActivity(intent)
+                    } catch (ex: Exception) {
+                        Log.e(TAG, "openClickUrl: Failed to launch $url", ex)
+                    }
                 }
-                context.startActivity(intent)
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to open web native ad URL: $url", e)
             }
         }
     }

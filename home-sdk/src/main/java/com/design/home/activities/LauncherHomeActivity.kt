@@ -308,6 +308,11 @@ class LauncherHomeActivity : SimpleActivity(), FlingListener {
         super.onResume()
         wasJustPaused = false
         refreshWallpaperSupportsDarkText()
+        Handler(Looper.getMainLooper()).post {
+            if (!isFinishing && !isDestroyed) {
+                com.design.home.helpers.LeftPanelRegistry.provider?.checkAndOpenMainFlow(this)
+            }
+        }
         Handler(Looper.getMainLooper()).postDelayed({
             if (isAllAppsFragmentExpanded() || isWidgetsFragmentExpanded()) {
                 updateStatusBarIcons(getProperBackgroundColor())

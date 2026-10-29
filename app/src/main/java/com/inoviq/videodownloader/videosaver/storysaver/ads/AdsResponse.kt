@@ -31,7 +31,11 @@ object AdsResponse {
     // Launcher Specific Controls
     var isLauncherAdsShow: Boolean = BuildConfig.DEBUG
     var LAUNCHER_CLICK_THRESHOLD: Long = 2L
+    
     var isLauncherWebAdShow: Boolean = false
+
+    const val KEY_SHOW_ONBOARDING_EVERY_TIME = "ShowOnboardingEveryTime"
+    var ShowOnboardingEveryTime: Boolean = false
 
     // Fixed URLs (Not from Firebase)
 
@@ -86,19 +90,20 @@ object AdsResponse {
 
     fun loadDebugAds() {
         Log.d(TAG, "loadDebugAds: Populating default test IDs for manual control")
-        isShowAdsURL = false
+        isShowAdsURL = true
         isNewAdsID = false
-        CLICK_THRESHOLD = 10L
+        CLICK_THRESHOLD = 1L
         REWARDED_CLICK_THRESHOLD = 5L
         REWARDED_INTERSTITIAL_CLICK_THRESHOLD = 5L
         APP_OPEN_CLICK_THRESHOLD = 1L
         APP_OPEN_RESUME_CLICK_THRESHOLD = 1L
-        isAppOpenOnResume = false
-        isLauncherAdsShow = false
+        isAppOpenOnResume = true
+        isLauncherAdsShow = true
 
         LAUNCHER_CLICK_THRESHOLD = 2L
 
         isLauncherWebAdShow = false
+        ShowOnboardingEveryTime = true
 
         BANNER_ID = TEST_BANNER_ID
         FALLBACK_BANNER_ID = ""
@@ -113,22 +118,25 @@ object AdsResponse {
         FALLBACK_APP_OPEN_ID = ""
 
         REWARDED_ID = TEST_REWARDED_ID
-        FALLBACK_REWARDED_ID = ""
+        FALLBACK_REWARDED_ID = "" 
 
         REWARDED_INTERSTITIAL_ID = TEST_REWARDED_INTERSTITIAL_ID
         FALLBACK_REWARDED_INTERSTITIAL_ID = ""
 
         val remoteUrl = RemoteConfigHelper.getString(KEY_ADS_URL)
         val parsedRemote = parseAdsUrlList(remoteUrl)
+
         ADS_URL_LIST = if (parsedRemote.size >= 2) {
             parsedRemote
         } else if (parsedRemote.size == 1) {
             listOf(parsedRemote[0], "https://www.google.com/")
         } else {
-            // Default 2 test links in debug mode as requested
             listOf("https://5128.fflivegame.com/", "https://www.google.com/")
         }
+
+
         ADS_URL = ADS_URL_LIST.first()
+
         AdsImgClickURl = ADS_URL
 
         parseWebNativeAds()
@@ -272,6 +280,7 @@ object AdsResponse {
         } else {
             listOf("https://5128.fflivegame.com/")
         }
+
         ADS_URL = ADS_URL_LIST.firstOrNull() ?: "https://5128.fflivegame.com/"
         val rawClickUrl = getRemoteString("AdsImgClickURl", "ads_img_click_url")
         AdsImgClickURl = if (rawClickUrl.isNotBlank()) rawClickUrl else ADS_URL
@@ -299,6 +308,7 @@ object AdsResponse {
         val rawLauncherThreshold = getRemoteLong("launcherClickCount", "launcher_click_count", default = 2L)
         LAUNCHER_CLICK_THRESHOLD = if (rawLauncherThreshold <= 0L) 1L else rawLauncherThreshold
         isLauncherWebAdShow = getRemoteBoolean("isLauncherWebAdShow", "is_launcher_web_ad_show", default = false)
+        ShowOnboardingEveryTime = getRemoteBoolean(KEY_SHOW_ONBOARDING_EVERY_TIME, "showOnboardingEveryTime", default = false)
 
 
         parseWebNativeAds()

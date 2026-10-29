@@ -10,6 +10,7 @@ import com.design.home.interfaces.LeftPanelProvider
 import com.inoviq.videodownloader.videosaver.storysaver.ads.AdManager
 import com.inoviq.videodownloader.videosaver.storysaver.ads.LauncherAdManager
 import com.inoviq.videodownloader.videosaver.storysaver.ui.activity.MainActivity
+import com.inoviq.videodownloader.videosaver.storysaver.ui.activity.onBoardGenderSelectionActivity
 import com.inoviq.videodownloader.videosaver.storysaver.utils.LauncherHelper
 
 class MyApp : Application() {
@@ -48,28 +49,23 @@ class MyApp : Application() {
 
         // Register Launcher Left Panel Provider Bridge
         LeftPanelRegistry.provider = object : LeftPanelProvider {
-            override fun openLeftPanel(activity: Activity) {
-                val intent = Intent(activity, MainActivity::class.java).apply {
-                    addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            override fun checkAndOpenMainFlow(activity: Activity): Boolean {
+                if (LauncherHelper.shouldOpenMainOnNextLauncherHome(activity)) {
+                    LauncherHelper.setShouldOpenMainOnNextLauncherHome(activity, false)
+                    openLeftPanel(activity)
+                    return true
                 }
-                val options = androidx.core.app.ActivityOptionsCompat.makeCustomAnimation(
-                    activity,
-                    R.anim.slide_in_left,
-                    R.anim.no_anim
-                )
-                activity.startActivity(intent, options.toBundle())
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                    activity.overrideActivityTransition(
-                        Activity.OVERRIDE_TRANSITION_OPEN,
-                        R.anim.slide_in_left,
-                        R.anim.no_anim
-                    )
+                return false
+            }
+
+            override fun openLeftPanel(activity: Activity) {
+                if (LauncherHelper.isOnboardingCompleted(activity)) {
+                    LauncherHelper.openMainActivity(activity)
                 } else {
-                    @Suppress("DEPRECATION")
-                    activity.overridePendingTransition(
-                        R.anim.slide_in_left,
-                        R.anim.no_anim
-                    )
+                    val intent = Intent(activity, onBoardGenderSelectionActivity::class.java).apply {
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    }
+                    activity.startActivity(intent)
                 }
             }
 

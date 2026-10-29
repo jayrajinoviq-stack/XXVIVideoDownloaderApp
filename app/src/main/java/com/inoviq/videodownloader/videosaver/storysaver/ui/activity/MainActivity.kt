@@ -14,24 +14,11 @@ import android.view.View
 import android.view.ViewConfiguration
 import android.view.animation.DecelerateInterpolator
 import android.widget.Toast
-import androidx.activity.OnBackPressedCallback
-import androidx.activity.SystemBarStyle
-import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.GravityCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.LinearLayoutManager
-import android.app.Dialog
-import android.content.Context
-import android.graphics.drawable.ColorDrawable
-import android.net.ConnectivityManager
-import android.net.Network
-import android.net.NetworkCapabilities
-import android.net.NetworkRequest
-import android.view.ViewGroup
-import android.view.Window
 import com.inoviq.videodownloader.videosaver.storysaver.R
 import com.inoviq.videodownloader.videosaver.storysaver.adapter.TabSwitcherAdapter
 import com.inoviq.videodownloader.videosaver.storysaver.ads.AdManager
@@ -41,7 +28,6 @@ import com.inoviq.videodownloader.videosaver.storysaver.model.HistoryItem
 import com.inoviq.videodownloader.videosaver.storysaver.ui.fragment.BrowserFragment
 import com.inoviq.videodownloader.videosaver.storysaver.ui.fragment.FilesFragment
 import com.inoviq.videodownloader.videosaver.storysaver.utils.BookmarkManager
-import com.inoviq.videodownloader.videosaver.storysaver.utils.BrowserHistoryManager
 import com.inoviq.videodownloader.videosaver.storysaver.utils.LauncherHelper
 import com.inoviq.videodownloader.videosaver.storysaver.utils.TabStore
 import kotlin.math.abs
@@ -56,29 +42,32 @@ class MainActivity : BaseActivity() {
     private lateinit var tabAdapter: TabSwitcherAdapter
     private lateinit var inAppUpdateHelper: com.inoviq.videodownloader.videosaver.storysaver.utils.InAppUpdateHelper
 
-    private val historyLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        if (result.resultCode == RESULT_OK) {
-            val navUrl = result.data?.getStringExtra(HistoryActivity.EXTRA_NAVIGATE_URL)
-            val newTabUrl = result.data?.getStringExtra(HistoryActivity.EXTRA_NEW_TAB_URL)
-            if (!navUrl.isNullOrBlank()) {
-                browserFragment.loadUrl(navUrl)
-            } else if (!newTabUrl.isNullOrBlank()) {
-                addNewTab(newTabUrl)
+    private val historyLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == RESULT_OK) {
+                val navUrl = result.data?.getStringExtra(HistoryActivity.EXTRA_NAVIGATE_URL)
+                val newTabUrl = result.data?.getStringExtra(HistoryActivity.EXTRA_NEW_TAB_URL)
+                if (!navUrl.isNullOrBlank()) {
+                    browserFragment.loadUrl(navUrl)
+                } else if (!newTabUrl.isNullOrBlank()) {
+                    addNewTab(newTabUrl)
+                }
             }
         }
-    }
 
-    private val bookmarkLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        if (result.resultCode == RESULT_OK) {
-            val navUrl = result.data?.getStringExtra(BookmarkActivity.EXTRA_NAVIGATE_URL)
-            val newTabUrl = result.data?.getStringExtra(BookmarkActivity.EXTRA_NEW_TAB_URL)
-            if (!navUrl.isNullOrBlank()) {
-                browserFragment.loadUrl(navUrl)
-            } else if (!newTabUrl.isNullOrBlank()) {
-                addNewTab(newTabUrl)
+
+    private val bookmarkLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == RESULT_OK) {
+                val navUrl = result.data?.getStringExtra(BookmarkActivity.EXTRA_NAVIGATE_URL)
+                val newTabUrl = result.data?.getStringExtra(BookmarkActivity.EXTRA_NEW_TAB_URL)
+                if (!navUrl.isNullOrBlank()) {
+                    browserFragment.loadUrl(navUrl)
+                } else if (!newTabUrl.isNullOrBlank()) {
+                    addNewTab(newTabUrl)
+                }
             }
         }
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -146,7 +135,11 @@ class MainActivity : BaseActivity() {
         handleIntent(intent)
 
         // Initialize Google Play In-App Update check
-        inAppUpdateHelper = com.inoviq.videodownloader.videosaver.storysaver.utils.InAppUpdateHelper(this, binding.root)
+        inAppUpdateHelper =
+            com.inoviq.videodownloader.videosaver.storysaver.utils.InAppUpdateHelper(
+                this,
+                binding.root
+            )
         inAppUpdateHelper.checkForUpdate()
     }
 
@@ -194,7 +187,8 @@ class MainActivity : BaseActivity() {
     }
 
     private fun setupFragmentsAndNavigation() {
-        val existingBrowser = supportFragmentManager.findFragmentByTag("BROWSER") as? BrowserFragment
+        val existingBrowser =
+            supportFragmentManager.findFragmentByTag("BROWSER") as? BrowserFragment
         browserFragment = existingBrowser ?: BrowserFragment()
 
         val firstTab = openTabs.firstOrNull { it.isCurrent } ?: openTabs.firstOrNull()
@@ -256,11 +250,12 @@ class MainActivity : BaseActivity() {
         )
 
         binding.rvDrawerTabs.layoutManager = LinearLayoutManager(this)
-        binding.rvDrawerTabs.itemAnimator = androidx.recyclerview.widget.DefaultItemAnimator().apply {
-            addDuration = 220L
-            removeDuration = 200L
-            changeDuration = 180L
-        }
+        binding.rvDrawerTabs.itemAnimator =
+            androidx.recyclerview.widget.DefaultItemAnimator().apply {
+                addDuration = 220L
+                removeDuration = 200L
+                changeDuration = 180L
+            }
         binding.rvDrawerTabs.adapter = tabAdapter
 
         // Header '+' button inside Drawer (Vector 1): creates new tab (Image 3)
@@ -382,7 +377,8 @@ class MainActivity : BaseActivity() {
         if (trimmed.isBlank() ||
             trimmed.equals("about:blank", ignoreCase = true) ||
             trimmed.equals("home", ignoreCase = true) ||
-            title.equals("Homepage", ignoreCase = true)) {
+            title.equals("Homepage", ignoreCase = true)
+        ) {
             Toast.makeText(this, "Cannot bookmark home screen", Toast.LENGTH_SHORT).show()
             return
         }
@@ -416,6 +412,7 @@ class MainActivity : BaseActivity() {
                 velocityTracker?.recycle()
                 velocityTracker = VelocityTracker.obtain().apply { addMovement(ev) }
             }
+
             MotionEvent.ACTION_MOVE -> {
                 velocityTracker?.addMovement(ev)
                 val dx = ev.rawX - downX
@@ -434,6 +431,7 @@ class MainActivity : BaseActivity() {
                     return true
                 }
             }
+
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                 velocityTracker?.addMovement(ev)
                 velocityTracker?.computeCurrentVelocity(1000)
@@ -459,26 +457,29 @@ class MainActivity : BaseActivity() {
     private fun animateAndClose(fromX: Float) {
         if (isClosing) return
         isClosing = true
-        ObjectAnimator.ofFloat(binding.root, View.TRANSLATION_X, fromX, -screenWidth.toFloat()).apply {
-            duration = 200
-            interpolator = DecelerateInterpolator()
-            addListener(object : AnimatorListenerAdapter() {
-                override fun onAnimationEnd(animation: Animator) {
-                    finish()
-                    overridePendingTransition(0, 0)
-                }
-            })
-            start()
-        }
+        ObjectAnimator.ofFloat(binding.root, View.TRANSLATION_X, fromX, -screenWidth.toFloat())
+            .apply {
+                duration = 200
+                interpolator = DecelerateInterpolator()
+                addListener(object : AnimatorListenerAdapter() {
+                    override fun onAnimationEnd(animation: Animator) {
+                        finish()
+                        overridePendingTransition(0, 0)
+                    }
+                })
+                start()
+            }
     }
 
     private fun animateBack() {
-        ObjectAnimator.ofFloat(binding.root, View.TRANSLATION_X, binding.root.translationX, 0f).apply {
-            duration = 150
-            interpolator = DecelerateInterpolator()
-            start()
-        }
+        ObjectAnimator.ofFloat(binding.root, View.TRANSLATION_X, binding.root.translationX, 0f)
+            .apply {
+                duration = 150
+                interpolator = DecelerateInterpolator()
+                start()
+            }
     }
+
 
     override fun handleBackPress() {
         if (binding.drawerLayout.isDrawerOpen(GravityCompat.START)) {
@@ -490,14 +491,11 @@ class MainActivity : BaseActivity() {
             browserFragment.goBack()
             return
         }
-
-        // If user is at root of MainActivity, show Interstitial Ad (based on count threshold) and exit
-        AdManager.showInterstitial(this) {
-            if (LauncherHelper.isDefaultLauncher(this@MainActivity)) {
-                animateAndClose(binding.root.translationX)
-            } else {
-                finish()
-            }
+        if (LauncherHelper.isDefaultLauncher(this@MainActivity)) {
+            animateAndClose(binding.root.translationX)
+        } else {
+            finish()
         }
+
     }
 }

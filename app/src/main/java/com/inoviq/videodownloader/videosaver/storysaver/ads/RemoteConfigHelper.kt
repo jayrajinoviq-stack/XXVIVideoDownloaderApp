@@ -128,12 +128,25 @@ object RemoteConfigHelper {
     fun getBoolean(key: String, default: Boolean = false): Boolean {
         firebaseRemoteConfigInstance?.let { instance ->
             try {
-                val strVal = instance.getString(key)
-                if (strVal.isNotBlank()) {
-                    if (strVal.equals("true", ignoreCase = true)) return true
-                    if (strVal.equals("false", ignoreCase = true)) return false
+                val altKey = if (key.isNotEmpty()) {
+                    if (key[0].isUpperCase()) key.replaceFirstChar { it.lowercase() }
+                    else key.replaceFirstChar { it.uppercase() }
+                } else key
+
+                val targetKey = when {
+                    instance.all.containsKey(key) -> key
+                    instance.all.containsKey(altKey) -> altKey
+                    else -> null
                 }
-                return instance.getBoolean(key)
+
+                if (targetKey != null) {
+                    val strVal = instance.getString(targetKey)
+                    if (strVal.isNotBlank()) {
+                        if (strVal.equals("true", ignoreCase = true)) return true
+                        if (strVal.equals("false", ignoreCase = true)) return false
+                    }
+                    return instance.getBoolean(targetKey)
+                }
             } catch (e: Exception) {
                 Log.e(TAG, "Error querying Firebase Remote Config for $key", e)
             }

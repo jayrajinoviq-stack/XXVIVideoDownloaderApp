@@ -43,15 +43,9 @@ class InterstitialHelper(private val context: Context) {
     private val timeoutHandler = Handler(Looper.getMainLooper())
     private var timeoutRunnable: Runnable? = null
 
-    /**
-     * Checks if an ad is ready to show right now.
-     */
+
     fun isAdReady(): Boolean = interstitialAd != null && isFresh()
 
-    /**
-     * Loads the interstitial ad. Tries primary unit first; if it fails, falls back.
-     * Skips directly to fallback if primary unit ID is blank.
-     */
     fun loadAd(
         primaryAdUnitId: String,
         fallbackAdUnitId: String = "",

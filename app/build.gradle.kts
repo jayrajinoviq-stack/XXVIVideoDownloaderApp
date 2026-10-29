@@ -11,8 +11,8 @@ android {
     namespace = "com.inoviq.videodownloader.videosaver.storysaver"
     compileSdk = 36
 
-    val appVersionCode = 2
-    val appVersionName = "1.0.1"
+    val appVersionCode = 3
+    val appVersionName = "1.0.2"
     val currentDate: String = SimpleDateFormat("yyyy-MM-dd").format(Date())
 
     base {

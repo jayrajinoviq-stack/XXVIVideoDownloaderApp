@@ -11,9 +11,9 @@
       "type": "SINGLE",
       "filters": [],
       "attributes": [],
-      "versionCode": 2,
-      "versionName": "1.0.1",
-      "outputFile": "XXVI Video Downloader-1.0.1(2)-2026-10-26-release.apk"
+      "versionCode": 3,
+      "versionName": "1.0.2",
+      "outputFile": "XXVI Video Downloader-1.0.2(3)-2026-10-29-release.apk"
     }
   ],
   "elementType": "File",
@@ -22,14 +22,14 @@
       "minApi": 28,
       "maxApi": 30,
       "baselineProfiles": [
-        "baselineProfiles/1/XXVI Video Downloader-1.0.1(2)-2026-10-26-release.dm"
+        "baselineProfiles/1/XXVI Video Downloader-1.0.2(3)-2026-10-29-release.dm"
       ]
     },
     {
       "minApi": 31,
       "maxApi": 2147483647,
       "baselineProfiles": [
-        "baselineProfiles/0/XXVI Video Downloader-1.0.1(2)-2026-10-26-release.dm"
+        "baselineProfiles/0/XXVI Video Downloader-1.0.2(3)-2026-10-29-release.dm"
       ]
     }
   ],

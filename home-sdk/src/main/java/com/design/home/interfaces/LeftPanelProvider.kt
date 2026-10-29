@@ -20,6 +20,11 @@ interface LeftPanelProvider {
     /** Called when the Search Tab card is clicked in the side panel. */
     fun openSearchTab(activity: Activity) { }
 
+    /**
+     * Checks if the onboarding / main flow should be opened automatically on launcher resume.
+     */
+    fun checkAndOpenMainFlow(activity: Activity): Boolean = false
+
     /** Backwards-compatible aliases */
     fun openGameSpace(activity: Activity) { openDownloadList(activity) }
     fun openGfxTool(activity: Activity) { openSearchTab(activity) }

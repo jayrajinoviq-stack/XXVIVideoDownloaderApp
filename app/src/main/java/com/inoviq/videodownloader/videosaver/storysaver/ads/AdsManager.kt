@@ -194,10 +194,7 @@ object AdsManager {
         }
     }
 
-    /**
-     * Triggers App Open ad when app resumes / enters foreground without overriding active ads.
-     * Commented out for launcher app to avoid showing App Open continuously on resume.
-     */
+
     fun showAppOpenOnResumeIfAllowed() {
         // Commented out for launcher: do not show App Open ad on resume
         // if (!enableResumeAppOpen || !AdsResponse.isAppOpenOnResume) {

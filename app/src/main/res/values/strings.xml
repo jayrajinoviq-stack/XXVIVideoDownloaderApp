@@ -1,3 +1,48 @@
 <resources>
-    <string name="app_name">XXVI Video Downloader</string>
+    <!-- Common Buttons -->
+    <string name="btn_next">Next</string>
+    <string name="next_btn">Next</string>
+    <string name="continue_btn">Continue</string>
+    <string name="start_app_btn">Start App</string>
+
+    <!-- Gender Selection -->
+    <string name="select_gender">Select Gender</string>
+    <string name="tell_us_about_yourself">Tell Us About Yourself</string>
+    <string name="tell_us_about_yourself_desc">Choose An Option To Make Your Experience\nMore Personal.</string>
+    <string name="personalize_your_profile">Tell Us About Yourself</string>
+    <string name="personalize_profile_desc">Choose An Option To Make Your Experience\nMore Personal.</string>
+    <string name="gender_male">Male</string>
+    <string name="gender_female">Female</string>
+
+    <!-- Age Selection -->
+    <string name="select_age">Select Age</string>
+    <string name="find_your_age_group">Find Your Age Group</string>
+    <string name="find_your_age_group_desc">Find People And Contacts Based On Your\nChosen Age Group.</string>
+    <string name="choose_an_age_group">Find Your Age Group</string>
+    <string name="choose_age_group_desc">Find People And Contacts Based On Your\nChosen Age Group.</string>
+    <string name="age_18_21">18–21</string>
+    <string name="age_22_31">22–31</string>
+    <string name="age_32_39">32–39</string>
+    <string name="age_40_plus">40+</string>
+
+    <!-- Category Selection -->
+    <string name="category_title">Category</string>
+    <string name="what_interests_you">What Interests You?</string>
+    <string name="what_interests_you_desc">Choose The Categories You Enjoy And Discover\nContent You\'ll Love.</string>
+    <string name="personalize_your_discovery">What Interests You?</string>
+    <string name="personalize_discovery_desc">Choose The Categories You Enjoy And Discover\nContent You\'ll Love.</string>
+    <string name="cat_all_video">All Video Download</string>
+    <string name="cat_insta">Insta Download</string>
+    <string name="cat_facebook">FB Download</string>
+    <string name="cat_tiktok">TikTok Download</string>
+    <string name="cat_twitter">Twitter Download</string>
+    <string name="cat_mitron">Mitron Download</string>
+
+    <!-- Watch Category Selection -->
+    <string name="watch_category_title">Watch Category</string>
+    <string name="your_interests_your_way">Your Interests, Your Way</string>
+    <string name="your_interests_your_way_desc">Tell Us What You Like To Watch So We Can\nTailor Your Experience.</string>
+
+    <!-- Feature Walkthrough -->
+    <string name="video_downloader_title">Video Downloader</string>
 </resources>

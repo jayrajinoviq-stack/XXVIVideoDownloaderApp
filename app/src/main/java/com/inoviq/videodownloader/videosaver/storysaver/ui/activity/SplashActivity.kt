@@ -69,7 +69,11 @@ class SplashActivity : AppCompatActivity() {
         hasNavigated = true
         AdManager.showAppOpenAd(this) {
             if (LauncherHelper.isDefaultLauncher(this)) {
-                LauncherHelper.openLauncherHome(this)
+                if (LauncherHelper.isOnboardingCompleted(this)) {
+                    startActivity(Intent(this, MainActivity::class.java))
+                } else {
+                    startActivity(Intent(this, onBoardGenderSelectionActivity::class.java))
+                }
             } else {
                 startActivity(Intent(this, SetDefaultLauncherActivity::class.java))
             }

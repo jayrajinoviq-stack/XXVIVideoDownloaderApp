@@ -11,8 +11,8 @@
         <item name="android:buttonStyle">@style/MyTransparentButton</item>
         <item name="actionOverflowMenuStyle">@style/TopPopupMenu.Overflow.Dark</item>
         <item name="android:textColor">@color/default_text_color</item>
-        <item name="android:colorControlHighlight">@color/activated_item_foreground</item>
-        <item name="colorControlHighlight">@color/activated_item_foreground</item>
+        <item name="android:colorControlHighlight">@color/colorPrimary</item>
+        <item name="colorControlHighlight">@color/colorPrimary</item>
         <item name="bottomSheetDialogTheme">@style/BottomSheetDialogTheme</item>
         <item name="android:actionModeCloseDrawable">@drawable/ic_arrow_left_vector</item>
         <item name="actionModeStyle">@style/AppCompat.ActionMode</item>
@@ -24,8 +24,8 @@
     </style>
 
     <style name="AppTheme.Base.Core" parent="Theme.Material3.Dark.NoActionBar">
-        <item name="android:colorControlHighlight">@color/activated_item_foreground</item>
-        <item name="colorControlHighlight">@color/activated_item_foreground</item>
+        <item name="android:colorControlHighlight">@color/colorPrimary</item>
+        <item name="colorControlHighlight">@color/colorPrimary</item>
         <item name="bottomSheetDialogTheme">@style/BottomSheetDialogTheme</item>
         <item name="android:forceDarkAllowed">false</item>
         <item name="windowActionModeOverlay">true</item>
@@ -414,8 +414,8 @@
     <style name="BottomSheetDialogTheme" parent="Theme.Design.Light.BottomSheetDialog">
         <item name="android:backgroundDimAmount">0.32</item>
         <item name="bottomSheetStyle">@style/BottomSheetModalStyle</item>
-        <item name="android:colorControlHighlight">@color/activated_item_foreground</item>
-        <item name="colorControlHighlight">@color/activated_item_foreground</item>
+        <item name="android:colorControlHighlight">@color/colorPrimary</item>
+        <item name="colorControlHighlight">@color/colorPrimary</item>
     </style>
 
     <style name="BottomSheetModalStyle" parent="Widget.Design.BottomSheet.Modal">
@@ -516,8 +516,8 @@
         <item name="android:textColorPrimary">@color/theme_dark_background_color</item>
         <item name="actionOverflowMenuStyle">@style/TopPopupMenu.Overflow.Light</item>
         <item name="android:itemTextAppearance">@style/AppTheme.White.TextStyle</item>
-        <item name="android:colorControlHighlight">@color/activated_item_foreground</item>
-        <item name="colorControlHighlight">@color/activated_item_foreground</item>
+        <item name="android:colorControlHighlight">@color/colorPrimary</item>
+        <item name="colorControlHighlight">@color/colorPrimary</item>
         <item name="android:colorControlActivated">@color/dark_grey</item>
         <item name="bottomSheetDialogTheme">@style/BottomSheetDialogTheme</item>
         <item name="windowActionModeOverlay">true</item>
@@ -535,8 +535,8 @@
         <item name="colorPrimary">@color/md_grey_white</item>
         <item name="colorPrimaryDark">@color/md_grey_white_dark</item>
         <item name="colorAccent">@color/md_grey_white</item>
-        <item name="android:colorControlHighlight">@color/activated_item_foreground</item>
-        <item name="colorControlHighlight">@color/activated_item_foreground</item>
+        <item name="android:colorControlHighlight">@color/colorPrimary</item>
+        <item name="colorControlHighlight">@color/colorPrimary</item>
         <item name="android:colorControlActivated">@color/dark_grey</item>
         <item name="bottomSheetDialogTheme">@style/BottomSheetDialogTheme</item>
         <item name="android:actionOverflowButtonStyle">@style/ActionMenuOverflowIcon</item>
@@ -552,8 +552,8 @@
         <item name="android:textColorPrimary">@color/theme_light_background_color</item>
         <item name="actionOverflowMenuStyle">@style/TopPopupMenu.Overflow.Dark</item>
         <item name="android:itemTextAppearance">@style/AppTheme.BlackAndWhite.TextStyle</item>
-        <item name="android:colorControlHighlight">@color/activated_item_foreground</item>
-        <item name="colorControlHighlight">@color/activated_item_foreground</item>
+        <item name="android:colorControlHighlight">@color/colorPrimary</item>
+        <item name="colorControlHighlight">@color/colorPrimary</item>
         <item name="android:colorControlActivated">@color/md_grey_white</item>
         <item name="bottomSheetDialogTheme">@style/BottomSheetDialogTheme</item>
         <item name="android:actionOverflowButtonStyle">@style/ActionMenuOverflowIcon</item>
@@ -572,8 +572,8 @@
         <item name="colorPrimary">@color/md_grey_black</item>
         <item name="colorPrimaryDark">@color/md_grey_black_dark</item>
         <item name="colorAccent">@color/md_grey_black</item>
-        <item name="android:colorControlHighlight">@color/activated_item_foreground</item>
-        <item name="colorControlHighlight">@color/activated_item_foreground</item>
+        <item name="android:colorControlHighlight">@color/colorPrimary</item>
+        <item name="colorControlHighlight">@color/colorPrimary</item>
         <item name="android:colorControlActivated">@color/md_grey_white</item>
         <item name="bottomSheetDialogTheme">@style/BottomSheetDialogTheme</item>
         <item name="android:actionOverflowButtonStyle">@style/ActionMenuOverflowIcon</item>
