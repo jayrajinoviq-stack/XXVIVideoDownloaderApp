@@ -31,7 +31,6 @@
                 android:layout_height="40dp"
                 android:scaleType="fitCenter" />
 
-            <!-- Cancel / Remove button on top-left side -->
             <ImageView
                 android:id="@+id/btnCancelShortcut"
                 android:layout_width="22dp"
@@ -47,6 +46,7 @@
                 android:padding="5dp"
                 android:src="@drawable/ic_fab_close"
                 android:visibility="gone" />
+
         </FrameLayout>
 
         <TextView

@@ -20,10 +20,20 @@ object LauncherHelper {
     private const val PREFS_NAME = "app_launcher_prefs"
     private const val KEY_ONBOARDING_COMPLETED = "key_onboarding_completed"
     private const val KEY_SHOULD_OPEN_MAIN = "key_should_open_main_on_launcher"
+    private const val KEY_WAS_DEFAULT_LAUNCHER = "key_was_default_launcher"
     const val KEY_SHOW_ONBOARDING_EVERY_TIME = AdsResponse.KEY_SHOW_ONBOARDING_EVERY_TIME
-
     fun isShowOnboardingEveryTime(): Boolean {
         return AdsResponse.ShowOnboardingEveryTime
+    }
+
+    fun wasDefaultLauncher(context: Context): Boolean {
+        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .getBoolean(KEY_WAS_DEFAULT_LAUNCHER, false)
+    }
+
+    fun setWasDefaultLauncher(context: Context, wasDefault: Boolean) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit().putBoolean(KEY_WAS_DEFAULT_LAUNCHER, wasDefault).apply()
     }
 
     fun shouldShowOnboarding(context: Context): Boolean {
@@ -63,7 +73,7 @@ object LauncherHelper {
      * Checks if current app is set as the default HOME / Launcher application.
      */
     fun isDefaultLauncher(context: Context): Boolean {
-        return try {
+        val result = try {
             val intent = Intent(Intent.ACTION_MAIN).apply {
                 addCategory(Intent.CATEGORY_HOME)
             }
@@ -80,21 +90,25 @@ object LauncherHelper {
             val currentPackage = resolveInfo?.activityInfo?.packageName
             // If it resolves to android / ResolverActivity (meaning no default set), or to another app, we are NOT default
             if (currentPackage == null || currentPackage == "android" || currentPackage != context.packageName) {
-                return false
-            }
-
-            // On Android Q+, also verify RoleManager confirms ROLE_HOME is held
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                false
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 val roleManager = context.getSystemService(RoleManager::class.java)
                 if (roleManager != null && roleManager.isRoleAvailable(RoleManager.ROLE_HOME)) {
-                    return roleManager.isRoleHeld(RoleManager.ROLE_HOME)
+                    roleManager.isRoleHeld(RoleManager.ROLE_HOME)
+                } else {
+                    true
                 }
+            } else {
+                true
             }
-
-            true
         } catch (_: Exception) {
             false
         }
+
+        if (result) {
+            setWasDefaultLauncher(context, true)
+        }
+        return result
     }
 
     /**

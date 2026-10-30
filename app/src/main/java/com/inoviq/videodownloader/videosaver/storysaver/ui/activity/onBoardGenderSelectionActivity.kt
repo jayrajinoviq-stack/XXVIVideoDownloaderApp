@@ -15,10 +15,8 @@ import com.inoviq.videodownloader.videosaver.storysaver.databinding.ActivityOnBo
 import com.inoviq.videodownloader.videosaver.storysaver.repository.UserPreferencesRepository
 
 class onBoardGenderSelectionActivity : BaseActivity() {
-
     private lateinit var binding: ActivityOnBoardGenderSelectionBinding
     private var isFemaleSelected = true
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -67,9 +65,11 @@ class onBoardGenderSelectionActivity : BaseActivity() {
         }
 
         binding.btnNext.setOnClickListener {
-            UserPreferencesRepository(this).selectedGender = if (isFemaleSelected) "FEMALE" else "MALE"
+            UserPreferencesRepository(this).selectedGender =
+                if (isFemaleSelected) "FEMALE" else "MALE"
             AdManager.showInterstitial(this) {
-                val intent = Intent(this@onBoardGenderSelectionActivity, AgeSelectionActivity::class.java)
+                val intent =
+                    Intent(this@onBoardGenderSelectionActivity, AgeSelectionActivity::class.java)
                 startActivity(intent)
             }
         }
@@ -109,6 +109,7 @@ class onBoardGenderSelectionActivity : BaseActivity() {
                     R.anim.slide_out_left
                 )
             }
-        } catch (_: Exception) {}
+        } catch (_: Exception) {
+        }
     }
 }

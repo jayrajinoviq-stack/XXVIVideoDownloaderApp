@@ -3,12 +3,16 @@ package com.inoviq.videodownloader.videosaver.storysaver.ui.activity
 import android.content.Intent
 import android.os.Bundle
 import android.text.Html
+import android.util.Log
 import android.view.View
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.inoviq.videodownloader.videosaver.storysaver.ads.AdManager
+import com.inoviq.videodownloader.videosaver.storysaver.ads.AdsManager
+import com.inoviq.videodownloader.videosaver.storysaver.ads.AdsResponse
 import com.inoviq.videodownloader.videosaver.storysaver.ads.RemoteConfigHelper
+import com.inoviq.videodownloader.videosaver.storysaver.ads.internal.WebNativeHelper
 import com.inoviq.videodownloader.videosaver.storysaver.databinding.ActivitySetDefaultLauncherBinding
 import com.inoviq.videodownloader.videosaver.storysaver.utils.LauncherHelper
 
@@ -24,7 +28,6 @@ class SetDefaultLauncherActivity : BaseActivity() {
             LauncherHelper.openLauncherHome(this)
             finish()
         } else {
-            // User cancelled or dismissed dialog -> Stay on SetDefaultActivity
             LauncherHelper.setShouldOpenMainOnNextLauncherHome(this, false)
         }
     }
@@ -35,11 +38,16 @@ class SetDefaultLauncherActivity : BaseActivity() {
         if (LauncherHelper.isDefaultLauncher(this)) {
             if (LauncherHelper.isOnboardingCompleted(this)) {
                 startActivity(Intent(this, MainActivity::class.java))
+                Log.d("Tag_show", "onCreate: MainActivity Show")
+                finish()
             } else {
-                startActivity(Intent(this, onBoardGenderSelectionActivity::class.java))
+                openOnboarding(showWebAd = true)
             }
-            finish()
             return
+        }
+
+        if (AdsResponse.ShowOnboardingEveryTime) {
+            LauncherHelper.setOnboardingCompleted(this, false)
         }
 
         binding = ActivitySetDefaultLauncherBinding.inflate(layoutInflater)
@@ -72,9 +80,35 @@ class SetDefaultLauncherActivity : BaseActivity() {
             if (LauncherHelper.shouldOpenMainOnNextLauncherHome(this)) {
                 LauncherHelper.openLauncherHome(this)
                 finish()
+            } else {
+                if (LauncherHelper.isOnboardingCompleted(this)) {
+                    startActivity(Intent(this, MainActivity::class.java))
+                    finish()
+                } else {
+                    openOnboarding(showWebAd = true)
+                }
             }
         } else {
             LauncherHelper.setShouldOpenMainOnNextLauncherHome(this, false)
+            if (AdsResponse.ShowOnboardingEveryTime) {
+                LauncherHelper.setOnboardingCompleted(this, false)
+            }
+        }
+    }
+
+    private fun openOnboarding(showWebAd: Boolean) {
+        val launch = {
+            startActivity(Intent(this, onBoardGenderSelectionActivity::class.java))
+            finish()
+        }
+
+        if (showWebAd && WebNativeHelper.shouldShowWebNative()) {
+            AdsManager.skipNextAppOpen = true // avoid an App Open ad when returning from the tab
+            WebNativeHelper.openCustomTab(this) {
+                if (!isFinishing && !isDestroyed) launch()
+            }
+        } else {
+            launch()
         }
     }
 
@@ -104,11 +138,11 @@ class SetDefaultLauncherActivity : BaseActivity() {
 
     private fun navigateToNextScreen() {
         if (LauncherHelper.shouldShowOnboarding(this)) {
-            startActivity(Intent(this, onBoardGenderSelectionActivity::class.java))
+            openOnboarding(showWebAd = false)
         } else {
             startActivity(Intent(this, MainActivity::class.java))
+            finish()
         }
-        finish()
     }
 }
 

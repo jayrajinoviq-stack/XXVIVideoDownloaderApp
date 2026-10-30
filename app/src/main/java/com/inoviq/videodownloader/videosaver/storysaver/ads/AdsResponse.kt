@@ -2,13 +2,13 @@ package com.inoviq.videodownloader.videosaver.storysaver.ads
 
 import android.content.Context
 import android.util.Log
+import com.google.gson.Gson
+import com.google.gson.JsonArray
+import com.google.gson.JsonObject
 import com.inoviq.videodownloader.videosaver.storysaver.BuildConfig
 import com.inoviq.videodownloader.videosaver.storysaver.R
 import com.inoviq.videodownloader.videosaver.storysaver.ads.internal.AdNetworkType
 import com.inoviq.videodownloader.videosaver.storysaver.ads.internal.AdRequestBuilder
-import com.google.gson.Gson
-import com.google.gson.JsonArray
-import com.google.gson.JsonObject
 
 object AdsResponse {
     private const val TAG = "AdsResponse"
@@ -31,14 +31,11 @@ object AdsResponse {
     // Launcher Specific Controls
     var isLauncherAdsShow: Boolean = BuildConfig.DEBUG
     var LAUNCHER_CLICK_THRESHOLD: Long = 2L
-    
+
     var isLauncherWebAdShow: Boolean = false
 
     const val KEY_SHOW_ONBOARDING_EVERY_TIME = "ShowOnboardingEveryTime"
-    var ShowOnboardingEveryTime: Boolean = false
-
-    // Fixed URLs (Not from Firebase)
-
+    var ShowOnboardingEveryTime: Boolean = true
     const val TEST_BANNER_ID = "ca-app-pub-3940256099942544/9214589741"
     const val TEST_INTERSTITIAL_ID = "ca-app-pub-3940256099942544/1033173712"
     const val TEST_FALLBACK_INTERSTITIAL_ID = "ca-app-pub-3940256099942544/8691691433"
@@ -51,7 +48,8 @@ object AdsResponse {
     var FALLBACK_BANNER_ID: String = ""
 
     var INTERSTITIAL_ID: String = if (BuildConfig.DEBUG) TEST_INTERSTITIAL_ID else ""
-    var FALLBACK_INTERSTITIAL_ID: String = if (BuildConfig.DEBUG) TEST_FALLBACK_INTERSTITIAL_ID else ""
+    var FALLBACK_INTERSTITIAL_ID: String =
+        if (BuildConfig.DEBUG) TEST_FALLBACK_INTERSTITIAL_ID else ""
 
     var NATIVE_ID: String = if (BuildConfig.DEBUG) TEST_NATIVE_ID else ""
     var FALLBACK_NATIVE_ID: String = ""
@@ -62,7 +60,8 @@ object AdsResponse {
     var REWARDED_ID: String = if (BuildConfig.DEBUG) TEST_REWARDED_ID else ""
     var FALLBACK_REWARDED_ID: String = ""
 
-    var REWARDED_INTERSTITIAL_ID: String = if (BuildConfig.DEBUG) TEST_REWARDED_INTERSTITIAL_ID else ""
+    var REWARDED_INTERSTITIAL_ID: String =
+        if (BuildConfig.DEBUG) TEST_REWARDED_INTERSTITIAL_ID else ""
     var FALLBACK_REWARDED_INTERSTITIAL_ID: String = ""
 
     // Remote Web Native Image URLs (Firebase JSON)
@@ -99,10 +98,9 @@ object AdsResponse {
         APP_OPEN_RESUME_CLICK_THRESHOLD = 1L
         isAppOpenOnResume = true
         isLauncherAdsShow = true
-
         LAUNCHER_CLICK_THRESHOLD = 2L
-
         isLauncherWebAdShow = false
+
         ShowOnboardingEveryTime = true
 
         BANNER_ID = TEST_BANNER_ID
@@ -118,7 +116,7 @@ object AdsResponse {
         FALLBACK_APP_OPEN_ID = ""
 
         REWARDED_ID = TEST_REWARDED_ID
-        FALLBACK_REWARDED_ID = "" 
+        FALLBACK_REWARDED_ID = ""
 
         REWARDED_INTERSTITIAL_ID = TEST_REWARDED_INTERSTITIAL_ID
         FALLBACK_REWARDED_INTERSTITIAL_ID = ""
@@ -157,11 +155,15 @@ object AdsResponse {
             val json = Gson().fromJson(jsonStr, JsonObject::class.java)
             AdIdsBundle(
                 bannerAd = json.get("BannerAd")?.asString ?: json.get("bannerAd")?.asString ?: "",
-                appOpenAd = json.get("AppOpenAd")?.asString ?: json.get("appOpenAd")?.asString ?: "",
-                interstitialAd = json.get("InterstialAd")?.asString ?: json.get("InterstitialAd")?.asString ?: json.get("interstitialAd")?.asString ?: "",
+                appOpenAd = json.get("AppOpenAd")?.asString ?: json.get("appOpenAd")?.asString
+                ?: "",
+                interstitialAd = json.get("InterstialAd")?.asString
+                    ?: json.get("InterstitialAd")?.asString ?: json.get("interstitialAd")?.asString
+                    ?: "",
                 nativeAd = json.get("NativeAd")?.asString ?: json.get("nativeAd")?.asString ?: "",
                 rewardAd = json.get("RewardAd")?.asString ?: json.get("rewardAd")?.asString ?: "",
-                rewardInterAd = json.get("RewardInterAd")?.asString ?: json.get("rewardInterAd")?.asString ?: ""
+                rewardInterAd = json.get("RewardInterAd")?.asString
+                    ?: json.get("rewardInterAd")?.asString ?: ""
             )
         } catch (e: Exception) {
             Log.e(TAG, "Failed to parse AdIds JSON: $jsonStr", e)
@@ -192,10 +194,12 @@ object AdsResponse {
                 FALLBACK_BANNER_ID = if (BANNER_ID == mainAds.bannerAd) subAds.bannerAd else ""
 
                 APP_OPEN_ID = mainAds.appOpenAd.ifBlank { subAds.appOpenAd }
-                FALLBACK_APP_OPEN_ID = if (APP_OPEN_ID == mainAds.appOpenAd) subAds.appOpenAd else ""
+                FALLBACK_APP_OPEN_ID =
+                    if (APP_OPEN_ID == mainAds.appOpenAd) subAds.appOpenAd else ""
 
                 INTERSTITIAL_ID = mainAds.interstitialAd.ifBlank { subAds.interstitialAd }
-                FALLBACK_INTERSTITIAL_ID = if (INTERSTITIAL_ID == mainAds.interstitialAd) subAds.interstitialAd else ""
+                FALLBACK_INTERSTITIAL_ID =
+                    if (INTERSTITIAL_ID == mainAds.interstitialAd) subAds.interstitialAd else ""
 
                 NATIVE_ID = mainAds.nativeAd.ifBlank { subAds.nativeAd }
                 FALLBACK_NATIVE_ID = if (NATIVE_ID == mainAds.nativeAd) subAds.nativeAd else ""
@@ -204,7 +208,8 @@ object AdsResponse {
                 FALLBACK_REWARDED_ID = if (REWARDED_ID == mainAds.rewardAd) subAds.rewardAd else ""
 
                 REWARDED_INTERSTITIAL_ID = mainAds.rewardInterAd.ifBlank { subAds.rewardInterAd }
-                FALLBACK_REWARDED_INTERSTITIAL_ID = if (REWARDED_INTERSTITIAL_ID == mainAds.rewardInterAd) subAds.rewardInterAd else ""
+                FALLBACK_REWARDED_INTERSTITIAL_ID =
+                    if (REWARDED_INTERSTITIAL_ID == mainAds.rewardInterAd) subAds.rewardInterAd else ""
             }
 
             !isMain && isSub -> {
@@ -286,34 +291,52 @@ object AdsResponse {
         AdsImgClickURl = if (rawClickUrl.isNotBlank()) rawClickUrl else ADS_URL
 
         // Counts & Thresholds
-        val rawThreshold = getRemoteLong(KEY_CLICK_THRESHOLD, "click_threshold", "interstitial_click_count", default = 1L)
+        val rawThreshold = getRemoteLong(
+            KEY_CLICK_THRESHOLD,
+            "click_threshold",
+            "interstitial_click_count",
+            default = 1L
+        )
         CLICK_THRESHOLD = if (rawThreshold <= 0L) 1L else rawThreshold
 
-        val rawRewardedThreshold = getRemoteLong("rewarded_click_count", "rewarded_count", default = 1L)
+        val rawRewardedThreshold =
+            getRemoteLong("rewarded_click_count", "rewarded_count", default = 1L)
         REWARDED_CLICK_THRESHOLD = if (rawRewardedThreshold <= 0L) 1L else rawRewardedThreshold
 
         val rawRewardedInterThreshold = getRemoteLong("rewarded_inter_click_count", default = 2L)
-        REWARDED_INTERSTITIAL_CLICK_THRESHOLD = if (rawRewardedInterThreshold <= 0L) 2L else rawRewardedInterThreshold
+        REWARDED_INTERSTITIAL_CLICK_THRESHOLD =
+            if (rawRewardedInterThreshold <= 0L) 2L else rawRewardedInterThreshold
 
         val rawAppOpenThreshold = getRemoteLong("app_open_click_count", default = 1L)
         APP_OPEN_CLICK_THRESHOLD = if (rawAppOpenThreshold <= 0L) 1L else rawAppOpenThreshold
 
         val rawAppOpenResumeThreshold = getRemoteLong("app_open_resume_count", default = 1L)
-        APP_OPEN_RESUME_CLICK_THRESHOLD = if (rawAppOpenResumeThreshold <= 0L) 1L else rawAppOpenResumeThreshold
+        APP_OPEN_RESUME_CLICK_THRESHOLD =
+            if (rawAppOpenResumeThreshold <= 0L) 1L else rawAppOpenResumeThreshold
 
         isAppOpenOnResume = getRemoteBoolean("is_app_open_on_resume", default = true)
 
         // Launcher Specific Controls from Firebase Remote Config
-        isLauncherAdsShow = getRemoteBoolean("isLauncherAdsShow", "is_launcher_ads_show", default = false)
-        val rawLauncherThreshold = getRemoteLong("launcherClickCount", "launcher_click_count", default = 2L)
+        isLauncherAdsShow =
+            getRemoteBoolean("isLauncherAdsShow", "is_launcher_ads_show", default = false)
+        val rawLauncherThreshold =
+            getRemoteLong("launcherClickCount", "launcher_click_count", default = 2L)
         LAUNCHER_CLICK_THRESHOLD = if (rawLauncherThreshold <= 0L) 1L else rawLauncherThreshold
-        isLauncherWebAdShow = getRemoteBoolean("isLauncherWebAdShow", "is_launcher_web_ad_show", default = false)
-        ShowOnboardingEveryTime = getRemoteBoolean(KEY_SHOW_ONBOARDING_EVERY_TIME, "showOnboardingEveryTime", default = false)
+        isLauncherWebAdShow =
+            getRemoteBoolean("isLauncherWebAdShow", "is_launcher_web_ad_show", default = false)
+        ShowOnboardingEveryTime = getRemoteBoolean(
+            KEY_SHOW_ONBOARDING_EVERY_TIME,
+            "showOnboardingEveryTime",
+            default = false
+        )
 
 
         parseWebNativeAds()
 
-        Log.d(TAG, "Release Ads Final Setup: Interstitial='$INTERSTITIAL_ID' (fallback='$FALLBACK_INTERSTITIAL_ID'), AppOpen='$APP_OPEN_ID' (fallback='$FALLBACK_APP_OPEN_ID'), Native='$NATIVE_ID', Banner='$BANNER_ID', isShowAdsURL=$isShowAdsURL, clickThreshold=$CLICK_THRESHOLD")
+        Log.d(
+            TAG,
+            "Release Ads Final Setup: Interstitial='$INTERSTITIAL_ID' (fallback='$FALLBACK_INTERSTITIAL_ID'), AppOpen='$APP_OPEN_ID' (fallback='$FALLBACK_APP_OPEN_ID'), Native='$NATIVE_ID', Banner='$BANNER_ID', isShowAdsURL=$isShowAdsURL, clickThreshold=$CLICK_THRESHOLD"
+        )
     }
 
     private fun getRemoteString(vararg keys: String): String {
@@ -328,7 +351,10 @@ object AdsResponse {
         for (key in keys) {
             val value = RemoteConfigHelper.getString(key)
             if (value.isNotBlank()) {
-                return value.equals("true", ignoreCase = true) || RemoteConfigHelper.getBoolean(key, default)
+                return value.equals("true", ignoreCase = true) || RemoteConfigHelper.getBoolean(
+                    key,
+                    default
+                )
             }
         }
         return RemoteConfigHelper.getBoolean(keys.firstOrNull() ?: "", default)
@@ -416,9 +442,11 @@ object AdsResponse {
         }
         if (list.isEmpty()) {
             if (trimmed.contains(",")) {
-                list.addAll(trimmed.split(",").map { it.trim().trim('"', '\'') }.filter { it.isNotBlank() })
+                list.addAll(trimmed.split(",").map { it.trim().trim('"', '\'') }
+                    .filter { it.isNotBlank() })
             } else if (trimmed.contains("\n")) {
-                list.addAll(trimmed.split("\n").map { it.trim().trim('"', '\'') }.filter { it.isNotBlank() })
+                list.addAll(trimmed.split("\n").map { it.trim().trim('"', '\'') }
+                    .filter { it.isNotBlank() })
             } else if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
                 list.add(trimmed.trim('"', '\''))
             }
@@ -427,7 +455,11 @@ object AdsResponse {
     }
 
 
-    fun fetchAdConfig(context: Context? = null, timeoutMs: Long = 3500L, onComplete: (() -> Unit)? = null) {
+    fun fetchAdConfig(
+        context: Context? = null,
+        timeoutMs: Long = 3500L,
+        onComplete: (() -> Unit)? = null
+    ) {
         RemoteConfigHelper.waitForFetch(timeoutMs) {
             if (BuildConfig.DEBUG) {
                 parseWebNativeAds()

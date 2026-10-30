@@ -75,6 +75,10 @@ class SplashActivity : AppCompatActivity() {
                     startActivity(Intent(this, onBoardGenderSelectionActivity::class.java))
                 }
             } else {
+                LauncherHelper.setWasDefaultLauncher(this, false)
+                if (AdsResponse.ShowOnboardingEveryTime) {
+                    LauncherHelper.setOnboardingCompleted(this, false)
+                }
                 startActivity(Intent(this, SetDefaultLauncherActivity::class.java))
             }
             finish()

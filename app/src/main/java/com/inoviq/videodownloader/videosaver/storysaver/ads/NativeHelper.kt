@@ -19,22 +19,15 @@ import com.google.android.gms.ads.nativead.NativeAd
 import com.google.android.gms.ads.nativead.NativeAdOptions
 import com.google.android.gms.ads.nativead.NativeAdView
 
-/**
- * Helper for managing Google AdMob Native Ads (Small & Large).
- * Follows Google's official NativeAdvancedExample pattern.
- */
 class NativeHelper(private val context: Context) {
 
     private var nativeAd: NativeAd? = null
     var state: AdState = AdState.Idle
         private set
-
     private var isUsingFallback = false
     private var loadedUnitId: String = ""
     private val pendingLoadCallbacks = mutableListOf<(AdEvent) -> Unit>()
-
     private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
-
     fun isAdReady(): Boolean = nativeAd != null && state is AdState.Ready
 
     fun consumeLoadedAd(): NativeAd? {
@@ -43,17 +36,11 @@ class NativeHelper(private val context: Context) {
         state = AdState.Idle
         return ad
     }
-
-    /**
-     * Loads a native ad. Tries primary unit first, then fallback.
-     * If an ad is already ready in memory, returns AdEvent.Loaded immediately.
-     */
     fun loadAd(
         primaryAdUnitId: String,
         fallbackAdUnitId: String = "",
         onEvent: ((AdEvent) -> Unit)? = null
     ) {
-        // If ad is already loaded and ready in cache, fire callback immediately!
         if (nativeAd != null && state is AdState.Ready) {
             Log.d(TAG, "Native ad already loaded and ready in cache. Notifying immediately.")
             mainHandler.post {

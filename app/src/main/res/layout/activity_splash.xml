@@ -8,7 +8,6 @@
     android:background="@color/bg_home_cream"
     tools:context=".ui.activity.SplashActivity">
 
-
         <ImageView
             android:id="@+id/ivSplashLogo"
             android:layout_width="137dp"
@@ -19,7 +18,18 @@
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"/>
+            app:layout_constraintTop_toTopOf="parent" />
 
+        <ProgressBar
+            android:id="@+id/progressSplash"
+            style="?android:attr/progressBarStyle"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginTop="24dp"
+            android:indeterminate="true"
+            android:indeterminateTint="@color/brand_pink"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/ivSplashLogo" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

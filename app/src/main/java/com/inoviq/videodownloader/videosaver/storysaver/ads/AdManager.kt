@@ -34,9 +34,6 @@ object AdManager {
         AdsManager.onInterstitialUserAction(activity, onComplete)
     }
 
-    /**
-     * Shows an Interstitial ad directly without count skipping.
-     */
     fun showInterstitialDirect(
         activity: Activity,
         onComplete: () -> Unit

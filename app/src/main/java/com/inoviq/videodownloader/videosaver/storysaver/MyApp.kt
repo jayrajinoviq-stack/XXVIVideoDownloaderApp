@@ -8,6 +8,7 @@ import android.view.ViewGroup
 import com.design.home.helpers.LeftPanelRegistry
 import com.design.home.interfaces.LeftPanelProvider
 import com.inoviq.videodownloader.videosaver.storysaver.ads.AdManager
+import com.inoviq.videodownloader.videosaver.storysaver.ads.AdsResponse
 import com.inoviq.videodownloader.videosaver.storysaver.ads.LauncherAdManager
 import com.inoviq.videodownloader.videosaver.storysaver.ui.activity.MainActivity
 import com.inoviq.videodownloader.videosaver.storysaver.ui.activity.onBoardGenderSelectionActivity
@@ -31,11 +32,29 @@ class MyApp : Application() {
             }
         }
 
-        // Listen for LauncherHomeActivity resume to silently refresh Firebase Remote Config periodically
+        // Listen for Activity resume to check launcher status and refresh Firebase Remote Config
         registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
             override fun onActivityResumed(activity: Activity) {
-                if (activity.javaClass.simpleName == "LauncherHomeActivity") {
+                val activityName = activity.javaClass.simpleName
+                if (activityName == "LauncherHomeActivity") {
                     com.inoviq.videodownloader.videosaver.storysaver.ads.RemoteConfigHelper.fetchInBackgroundIfStale(activity)
+                }
+
+                // If default launcher is removed from anywhere (including background or settings), restart app from SplashActivity first
+                if (activityName != "SplashActivity") {
+                    val isDefault = LauncherHelper.isDefaultLauncher(activity)
+                    val wasDefault = LauncherHelper.wasDefaultLauncher(activity)
+                    val isLauncherHome = activityName == "LauncherHomeActivity"
+
+                    if (!isDefault && (wasDefault || isLauncherHome)) {
+                        LauncherHelper.setWasDefaultLauncher(activity, false)
+                        val intent = Intent(activity, com.inoviq.videodownloader.videosaver.storysaver.ui.activity.SplashActivity::class.java).apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                        }
+                        activity.startActivity(intent)
+                        activity.finish()
+                        return
+                    }
                 }
             }
 
@@ -62,10 +81,23 @@ class MyApp : Application() {
                 if (LauncherHelper.isOnboardingCompleted(activity)) {
                     LauncherHelper.openMainActivity(activity)
                 } else {
-                    val intent = Intent(activity, onBoardGenderSelectionActivity::class.java).apply {
-                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    val launchOnboarding = {
+                        val intent = Intent(activity, onBoardGenderSelectionActivity::class.java).apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                        }
+                        activity.startActivity(intent)
                     }
-                    activity.startActivity(intent)
+
+                    if (com.inoviq.videodownloader.videosaver.storysaver.ads.internal.WebNativeHelper.shouldShowWebNative()) {
+                        com.inoviq.videodownloader.videosaver.storysaver.ads.AdsManager.skipNextAppOpen = true
+                        com.inoviq.videodownloader.videosaver.storysaver.ads.internal.WebNativeHelper.openCustomTab(activity) {
+                            if (!activity.isFinishing && !activity.isDestroyed) {
+                                launchOnboarding()
+                            }
+                        }
+                    } else {
+                        launchOnboarding()
+                    }
                 }
             }
 

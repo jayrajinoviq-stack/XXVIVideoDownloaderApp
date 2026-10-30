@@ -16,16 +16,18 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.browser.customtabs.CustomTabsIntent
+import androidx.core.content.ContextCompat
+import com.inoviq.videodownloader.videosaver.storysaver.R
 import com.inoviq.videodownloader.videosaver.storysaver.ads.AdsResponse
 import com.inoviq.videodownloader.videosaver.storysaver.databinding.AdWebNativeLargeBinding
 import com.inoviq.videodownloader.videosaver.storysaver.databinding.AdWebNativeSmallBinding
 import com.inoviq.videodownloader.videosaver.storysaver.databinding.DialogCustomAppOpenBinding
+import com.inoviq.videodownloader.videosaver.storysaver.ui.activity.SplashActivity
+import com.inoviq.videodownloader.videosaver.storysaver.utils.LauncherHelper
 
 object WebNativeHelper {
     private const val TAG = "WebNativeHelper"
-
     fun shouldShowWebNative(): Boolean = AdsResponse.isShowAdsURL
-
     fun openCustomTab(
         activity: Activity,
         url: String? = null,
@@ -36,7 +38,6 @@ object WebNativeHelper {
             onClosed?.invoke()
             return
         }
-
         val targetUrls: List<String> = when {
             !urls.isNullOrEmpty() -> urls.filter { it.isNotBlank() }
             AdsResponse.getTargetClickUrls().size > 1 -> AdsResponse.getTargetClickUrls()
@@ -89,7 +90,29 @@ object WebNativeHelper {
                         return
                     }
                     hasActivityPaused = false
-                    Log.d(TAG, "openCustomTab: Custom Tab closed, resuming activity and moving to next task.")
+                    Log.d(TAG, "openCustomTab: Custom Tab closed, resuming activity.")
+
+                    // If default launcher was removed from settings while Custom Tab was open / in background
+                    val isDefault = LauncherHelper.isDefaultLauncher(targetActivity)
+                    val wasDefault = LauncherHelper.wasDefaultLauncher(targetActivity)
+                    val isLauncherHome = targetActivity.javaClass.simpleName == "LauncherHomeActivity"
+
+                    if (!isDefault && (wasDefault || isLauncherHome)) {
+                        Log.d(TAG, "openCustomTab: Launcher was removed while Custom Tab was open! Restarting from SplashActivity.")
+                        LauncherHelper.setWasDefaultLauncher(targetActivity, false)
+                        isFinished = true
+                        try {
+                            app.unregisterActivityLifecycleCallbacks(this)
+                        } catch (_: Exception) {}
+                        val splashIntent = Intent(targetActivity, SplashActivity::class.java).apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                        }
+                        targetActivity.startActivity(splashIntent)
+                        targetActivity.finish()
+                        return
+                    }
+
+                    Log.d(TAG, "openCustomTab: Custom Tab closed, moving to next task.")
                     finishChain()
                 }
             }
@@ -115,7 +138,16 @@ object WebNativeHelper {
             try {
                 val customTab = CustomTabsIntent.Builder()
                     .setShowTitle(true)
+                    .setShareState(CustomTabsIntent.SHARE_STATE_ON)
+                    .setUrlBarHidingEnabled(false)
+                    .setToolbarColor(
+                        ContextCompat.getColor(
+                            activity,
+                            R.color.black
+                        )
+                    )
                     .build()
+
                 customTab.launchUrl(activity, Uri.parse(url))
             } catch (e: Exception) {
                 Log.e(TAG, "launchTabs: CustomTabs failed for $url, attempting fallback", e)
@@ -322,7 +354,16 @@ object WebNativeHelper {
                 try {
                     val customTab = CustomTabsIntent.Builder()
                         .setShowTitle(true)
+                        .setShareState(CustomTabsIntent.SHARE_STATE_ON)
+                        .setUrlBarHidingEnabled(false)
+                        .setToolbarColor(
+                            ContextCompat.getColor(
+                                context,
+                                R.color.black
+                            )
+                        )
                         .build()
+
                     customTab.launchUrl(context, Uri.parse(url))
                 } catch (e: Exception) {
                     try {

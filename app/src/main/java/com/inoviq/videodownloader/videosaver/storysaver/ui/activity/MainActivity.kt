@@ -33,7 +33,6 @@ import com.inoviq.videodownloader.videosaver.storysaver.utils.TabStore
 import kotlin.math.abs
 
 class MainActivity : BaseActivity() {
-
     private lateinit var binding: ActivityMainBinding
     lateinit var browserFragment: BrowserFragment
     private val openTabs = mutableListOf<BrowserTab>()
@@ -41,7 +40,6 @@ class MainActivity : BaseActivity() {
     private val bookmarksList = mutableListOf<Pair<String, String>>()
     private lateinit var tabAdapter: TabSwitcherAdapter
     private lateinit var inAppUpdateHelper: com.inoviq.videodownloader.videosaver.storysaver.utils.InAppUpdateHelper
-
     private val historyLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == RESULT_OK) {
@@ -54,8 +52,6 @@ class MainActivity : BaseActivity() {
                 }
             }
         }
-
-
     private val bookmarkLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == RESULT_OK) {

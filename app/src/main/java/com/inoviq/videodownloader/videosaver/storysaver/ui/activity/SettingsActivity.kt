@@ -20,6 +20,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import com.inoviq.videodownloader.videosaver.storysaver.BuildConfig
 import com.inoviq.videodownloader.videosaver.storysaver.ads.AdManager
 import com.inoviq.videodownloader.videosaver.storysaver.ads.AdsManager
 import com.inoviq.videodownloader.videosaver.storysaver.databinding.ActivitySettingsBinding
@@ -70,6 +71,9 @@ class SettingsActivity : BaseActivity() {
             insets
         }
         ViewCompat.requestApplyInsets(binding.root)
+
+        binding.VersionCode.text = BuildConfig.VERSION_NAME
+
     }
 
     private fun setupListeners() {

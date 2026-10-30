@@ -22,6 +22,7 @@ import android.view.inputmethod.InputMethodManager
 import android.webkit.*
 import android.app.Dialog
 import android.net.Uri
+import android.util.Log
 import android.widget.PopupWindow
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
@@ -56,6 +57,7 @@ import com.inoviq.videodownloader.videosaver.storysaver.utils.HomeScreenShortcut
 import com.inoviq.videodownloader.videosaver.storysaver.utils.NotificationPermissionHelper
 import java.net.URLEncoder
 import org.json.JSONArray
+import kotlin.math.log
 
 class BrowserFragment : Fragment() {
 
@@ -463,6 +465,7 @@ class BrowserFragment : Fragment() {
                     AdManager.showInterstitial(act) {
                         loadUrl(item.url)
                     }
+                    Log.d("inter_call", "performSearchOrNavigate: call get performR")
                 } else {
                     loadUrl(item.url)
                 }
@@ -639,6 +642,7 @@ class BrowserFragment : Fragment() {
                 AdManager.showInterstitial(act) {
                     act.addNewTab()
                 }
+                Log.d("inter_call", "performSearchOrNavigate: call get performR")
             }
         }
 
@@ -745,11 +749,12 @@ class BrowserFragment : Fragment() {
                         performSearchOrNavigate(shortcut.url)
                     }
                 }
-                if (act != null) {
-                    AdManager.showInterstitial(act, proceed)
-                } else {
+//                if (act != null) {
+//                    AdManager.showInterstitial(act, proceed)
+//                    Log.d("inter_call", "performSearchOrNavigate: call get performsetupHomeScreenShortcuts")
+//                } else {
                     proceed()
-                }
+//                }
             },
             onAddClick = {
                 if (homeShortcutsList.size >= HomeScreenShortcutManager.MAX_SHORTCUTS) {
@@ -1260,7 +1265,6 @@ class BrowserFragment : Fragment() {
     }
 
     private fun injectDownloaderScript(view: WebView?) {
-        // Must run on main thread
         view?.post {
             view.evaluateJavascript(FacebookMediaSniffer.getInjectionScript(), null)
         }
@@ -1831,15 +1835,13 @@ class BrowserFragment : Fragment() {
 
         if (act != null) {
             AdManager.showInterstitial(act, proceed)
+            Log.d("inter_call", "performSearchOrNavigate: call get performSearchOrNavigate")
         } else {
             proceed()
         }
     }
 
-    /**
-     * Switch view state to WebView and navigate to URL (Image 5).
-     * Uses the active tab's own WebView — no cross-tab contamination.
-     */
+
     fun loadUrl(url: String) {
         val target = url.trim()
         if (target.isEmpty() || target.equals("about:blank", true) || target.equals("home", true)) {
@@ -1856,9 +1858,7 @@ class BrowserFragment : Fragment() {
         b.etHomeSearch.clearFocus()
         hideKeyboard()
 
-        // Ensure a WebView exists for the active tab
         if (activeTabId.isEmpty()) {
-            // Fallback: nothing to load into yet
             return
         }
         if (!tabWebViews.containsKey(activeTabId)) {
